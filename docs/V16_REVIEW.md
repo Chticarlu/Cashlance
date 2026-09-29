@@ -10,7 +10,7 @@ La V16 est une évolution de la V14 du dépôt, pas une nouvelle application. Le
 - app/layout.tsx, app/page.tsx, app/globals.css : métadonnées cashlance.fretixo.fr et retour vers FRETIXO.
 - app/api/stripe/webhook/route.ts : lecture de la Subscription après Checkout, identifiants développés pris en charge, erreurs Supabase remontées en HTTP 500.
 - lib/reminders.ts : règles françaises, dates, confiance et fallback IA optionnel désactivé par défaut.
-- app/api/webhooks/resend/route.ts : classification asynchrone, date de promesse, revue manuelle.
+- app/api/webhooks/resend/route.ts : classification asynchrone et indicateur de revue manuelle (la V16 extrait les dates mais ne les persiste pas encore dans invoices.promise_date).
 - Ajouts : .env.example, V15_CHANGES.md, V16_DOMAIN_MIGRATION.md.
 - Migrations SQL, clients Supabase, cron quotidien, routes facture/checkout/portail et écrans métier inchangés.
 - Quatre doublons à la racine (page.tsx, layout.tsx, globals.css, route.ts) sont absents de V16 et inutilisés par App Router ; leur suppression sera conservée dans Git.

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getAppUrl } from '@/lib/app-url'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe, getStripePriceId, PLAN_CONFIG, type PlanKey } from '@/lib/stripe'
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData()
     const plan = String(form.get('plan') || '') as PlanKey
-    if (!PLAN_CONFIG[plan]) return NextResponse.json({ error: 'Offre invalide' }, { status: 400 })
+    if (!Object.hasOwn(PLAN_CONFIG, plan)) return NextResponse.json({ error: 'Offre invalide' }, { status: 400 })
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
       if (updated.error) throw updated.error
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin
+    const appUrl = getAppUrl()
     const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX_ENABLED === 'true'
 
     const session = await stripe.checkout.sessions.create({

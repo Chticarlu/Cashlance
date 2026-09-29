@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getAppUrl } from '@/lib/app-url'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe } from '@/lib/stripe'
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   const { data: org } = await admin.from('organizations').select('stripe_customer_id').eq('owner_id', user.id).maybeSingle()
   if (!org?.stripe_customer_id) return NextResponse.redirect(new URL('/pricing', req.url), 303)
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin
+  const appUrl = getAppUrl()
   const session = await getStripe().billingPortal.sessions.create({
     customer: org.stripe_customer_id,
     return_url: `${appUrl}/dashboard`,

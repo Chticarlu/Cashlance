@@ -1,4 +1,10 @@
-# Cashlance MVP V8
+# Cashlance V16 — service FRETIXO
+
+Production cible : https://cashlance.fretixo.fr. Réception Resend conservée sur inbound.fretixo.fr.
+
+Installation et validation : `npm ci`, `npm test`, `npm run typecheck`, `npm run build`.
+
+Voir [la comparaison V16](docs/V16_REVIEW.md) et [les conditions de déploiement](docs/DEPLOYMENT_HANDOFF.md). Les informations historiques ci-dessous ne constituent pas une validation des comptes ou services actuels. Ne pas réexécuter les migrations SQL sur les bases existantes.
 
 SaaS B2B de relance amiable automatisée pour TPE/PME.
 
@@ -66,4 +72,4 @@ Les emails entrants sont considérés comme non fiables. Cashlance ne suit jamai
 
 ## Vercel deployment
 
-The project is configured for Vercel. Configure all variables from `.env.example` in Vercel before production use. The hourly `/api/cron/reminders` route validates `Authorization: Bearer $CRON_SECRET`. After the first production deployment, create the Stripe webhook destination pointing to `/api/stripe/webhook` and the Resend inbound webhook pointing to `/api/webhooks/resend`.
+The project is configured for Vercel. Preserve existing secrets and sender settings when reviewing `.env.example`. The daily `/api/cron/reminders` route (07:00 UTC) validates `Authorization: Bearer $CRON_SECRET`. Review existing Stripe and Resend webhook destinations before any deployment; do not create duplicates or change inbound DNS.

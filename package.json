@@ -1,11 +1,13 @@
 {
   "name": "cashlance-mvp",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -17,9 +19,10 @@
     "stripe": "18.5.0"
   },
   "devDependencies": {
-    "typescript": "5.9.2",
     "@types/node": "24.0.0",
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0"
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.2",
+    "vitest": "5.0.2"
   }
 }
