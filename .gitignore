@@ -6,3 +6,6 @@ node_modules/
 *.tsbuildinfo
 coverage/
 *.log
+
+.vercel
+.env*
