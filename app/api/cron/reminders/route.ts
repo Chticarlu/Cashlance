@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       subject: copy.subject,
       text: copy.text,
       replyTo,
-    })
+    }, { idempotencyKey: `reminder/${reminder.id}` })
 
     await db.from('outbound_messages').insert({
       organization_id: inv.organization_id,
