@@ -15,6 +15,20 @@ describe('document extraction',()=>{
   })
   it('does not interpret a VAT percentage as its amount',()=>expect(extractInvoice('TVA 20%\nTotal TTC : 120 EUR','a').tax).toBe(''))
   it('leaves missing fields empty and rejects ambiguous currencies',()=>expect(extractInvoice('Client : TEST\n100 EUR 200 USD','a')).toMatchObject({currency:'',due:'',amount:''}))
+  it('reads French billing blocks, document labels and remaining balance',()=>{
+    const r=extractInvoice('Fournisseur : EMETTEUR SAS\nseller@example.invalid\nAdresse de facturation\nDUPONT CONSTRUCTION SAS\n10 rue des Lilas\n75001 Paris\nEmail : acheteur@example.invalid\nCompte client : C-789\nNuméro de facture : FA/2026-123\nDate du document : 01/09/2026\nDate d’échéance : 16/10/2026\nMontant HT : 1000,00\nTVA : 20 %\nMontant total EUR : 1 200,00\nMontant restant dû : 800,00 EUR','fr.pdf')
+    expect(r).toMatchObject({client:'DUPONT CONSTRUCTION SAS',email:'acheteur@example.invalid',reference:'C-789',invoiceNumber:'FA/2026-123',invoiceDate:'2026-09-01',due:'2026-10-16',total:'1 200,00',amount:'800,00',tax:'',confirmed:false})
+  })
+  it.each(['Montant TTC','Net à payer','Montant total EUR'])('recognizes %s',label=>expect(extractInvoice(`${label} : 1 280,00 EUR`,'a').total).toBe('1 280,00'))
+  it('does not confuse account, date or supplier with debtor and invoice number',()=>{
+    expect(extractInvoice('Compte client : C-12\nDate de facture : 01/09/2026\nClient\nFournisseur : VENDEUR SAS','a')).toMatchObject({client:'',invoiceNumber:''})
+  })
+  it('proposes an unconfirmed due date only with an explicit starting point',()=>{
+    const base='Date de facture : 01/09/2026\n'
+    expect(extractInvoice(base+'Paiement à 45 jours date de facture','a')).toMatchObject({due:'2026-10-16',confirmed:false})
+    for(const term of ['Paiement à 45 jours','Paiement à 45 jours date de facture fin de mois','Paiement à 45 jours date de facture ouvrés']) expect(extractInvoice(base+term,'a').due).toBe('')
+    expect(extractInvoice('Paiement à 45 jours date de facture','a').due).toBe('')
+  })
 })
 describe('CSV and column mapping',()=>{
   it('handles BOM, quoted separators, escaped quotes and multiline fields',()=>expect(parseCSV('\uFEFFCLIENT;SOLDE;NOTE\r\n"Dupont; SAS";"1 280,00";"a""b\nc"')).toEqual([['CLIENT','SOLDE','NOTE'],['Dupont; SAS','1 280,00','a"b\nc']]))
