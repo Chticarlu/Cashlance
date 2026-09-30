@@ -61,7 +61,7 @@ export default function ImportWorkspace() {
       const engine = await import('@/lib/imports/browser')
       for (const file of files) {
         try {
-          engine.checkFile(file); track('document_uploaded'); setProgress(`Analyse locale : ${file.name}`)
+          engine.checkFile(file); track('document_uploaded'); setProgress(`Analyse : ${file.name}`)
           if (/\.(xlsx|csv)$/i.test(file.name)) sheets.push(...await engine.parseTable(file))
           else found.push(await engine.parseDocument(file, setProgress))
           track('document_parsed')
@@ -114,13 +114,13 @@ export default function ImportWorkspace() {
   const invalid = rows.filter(r => draftErrors(r, schedule).length).length
   return <>
     <h1>Importer vos créances</h1><p className="lead">Importer → analyser → vérifier → relancer.</p>
-    <p className="muted">Vos documents sont lus sur votre appareil. Seules les informations extraites sont sauvegardées dans votre espace privé. Aucun email sans votre validation.</p>
+    <p className="muted">Les PDF et images sont transmis à OpenAI pour analyse, sans conservation du fichier original par CashLance. Excel et CSV restent lus sur votre appareil. Vérifiez toutes les informations : aucun email sans votre validation.</p>
     <div className="grid3 import-options"><div className="card"><h2>Factures</h2><p>PDF, JPG, PNG · une ou plusieurs factures.</p></div><div className="card"><h2>Excel / CSV</h2><p>Une liste de créances, avec association des colonnes.</p></div><div className="card"><h2>Export comptable</h2><p>Excel ou CSV. Les grands livres PDF complexes ne sont pas pris en charge.</p></div></div>
     <fieldset disabled={busy || saving || !loaded} className="plain-fieldset">
       <div className="drop-zone" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (!busy && !saving) void filesSelected(Array.from(e.dataTransfer.files)) }}>
         <label htmlFor="documents"><strong>Déposez vos fichiers ici ou sélectionnez-les</strong></label>
         <input ref={input} id="documents" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" onChange={e => void filesSelected(Array.from(e.target.files || []))} />
-        <p>10 fichiers · 10 Mo par fichier · 200 créances par lot.</p>
+        <p>10 fichiers · PDF/images : 3 Mo et 3 pages par facture · Excel/CSV : 10 Mo · 200 créances par lot.</p>
         <label className="btn alt">Prendre une photo<input className="camera-input" type="file" accept="image/jpeg,image/png" capture="environment" onChange={e => void filesSelected(Array.from(e.target.files || []))} /></label>
       </div>
       <button className="btn alt" onClick={() => { setRows(old => [...old, emptyDraft('Saisie manuelle')]); setReviewed(false) }} disabled={rows.length >= MAX_ROWS}>Compléter une facture manuellement</button>

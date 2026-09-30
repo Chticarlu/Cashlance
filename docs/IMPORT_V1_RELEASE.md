@@ -1,5 +1,9 @@
 # CashLance — import V1, 30 septembre 2026
 
+> Mise à jour : l'analyse PDF/image passe désormais par OpenAI côté serveur.
+> Suivre `OPENAI_IMPORT_PREVIEW.md` pour la nouvelle migration, la clé et la livraison Preview.
+> Les mentions d'OCR local ci-dessous décrivent la première livraison, conservée comme historique.
+
 ## Reprise et résultat
 
 Base conservée : V16 `4e1681e`, puis `b668eb3`. Aucun développement CashLance inachevé dans le dépôt à la reprise. L’audit de migration racine reste bloqué par les réglages Auth hébergés et l’identification du compte Stripe Transport (voir `RESUME_2026_09_30.md`). Aucun domaine déplacé.

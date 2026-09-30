@@ -6,7 +6,7 @@ export const fields = {
   email: 'Email du client', phone: 'Téléphone', address: 'Adresse', postalCode: 'Code postal',
   city: 'Ville', siren: 'SIREN / SIRET', invoiceNumber: 'N° de facture', reference: 'Référence',
   invoiceDate: 'Date de facture', due: 'Échéance', net: 'Montant HT', tax: 'TVA (montant)',
-  total: 'Montant TTC', amount: 'Restant dû', currency: 'Devise',
+  total: 'Montant TTC', amount: 'Restant dû', currency: 'Devise', paymentTerms: 'Conditions de paiement',
 } as const
 export type Field = keyof typeof fields
 export type Draft = Record<Field, string> & { id: string; source: string; issuer: string; confirmed: boolean }

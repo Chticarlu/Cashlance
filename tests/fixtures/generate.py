@@ -18,3 +18,27 @@ wb=Workbook();ws=wb.active;ws.title='Creances'
 ws.append(['TIERS','NUM_PIECE','ECHEANCE','SOLDE','EMAIL_TIERS','DEVISE'])
 ws.append(['DUPONT SAS','EX-001','30/09/2026',1280,None,'EUR'])
 wb.save(root/'invoices.xlsx')
+
+# Low-resolution, French-labelled screenshot and an image-only PDF (no text layer).
+french = ['Fournisseur : EMETTEUR SAS', 'seller@example.invalid',
+          'Adresse de facturation :', 'DUPONT CONSTRUCTION SAS',
+          '10 rue des Lilas', '75001 Paris', 'Email : acheteur@example.invalid',
+          'Compte client : C-789', 'Facture n° FA-2026-123',
+          'Date du document : 01/09/2026', 'Date echeance : 16/10/2026',
+          'Montant HT : 1000,00', 'Montant TTC : 1200,00 EUR',
+          'Montant restant du : 800,00 EUR']
+shot=Image.new('RGB',(750,920),'white'); pen=ImageDraw.Draw(shot)
+small=ImageFont.truetype('C:/Windows/Fonts/arial.ttf',26)
+for i,line in enumerate(french): pen.text((25,25+i*60),line,fill='black',font=small)
+shot.save(root/'french-screenshot.png')
+scan=canvas.Canvas(str(root/'scanned.pdf'),pagesize=(750,920))
+scan.drawInlineImage(shot,0,0,width=750,height=920);scan.save()
+for name, omitted in [('missing-email.pdf','Email :'),('missing-due.pdf','Date echeance :')]:
+    pdf=canvas.Canvas(str(root/name));pdf.setFont('Helvetica',12)
+    for i,line in enumerate([line for line in french if not line.startswith(omitted)]):
+        pdf.drawString(35,790-i*30,line)
+    pdf.save()
+pdf=canvas.Canvas(str(root/'too-many-pages.pdf'))
+for i in range(4):
+    pdf.drawString(40,790,'Facture synthetique TEST-4P - page '+str(i+1));pdf.showPage()
+pdf.save()

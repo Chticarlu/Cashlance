@@ -7,10 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:e2e": "node scripts/prepare-import-assets.mjs && playwright test",
-    "typecheck": "tsc --noEmit",
-    "prebuild": "node scripts/prepare-import-assets.mjs",
-    "predev": "node scripts/prepare-import-assets.mjs"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

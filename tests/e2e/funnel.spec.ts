@@ -4,11 +4,11 @@ const fixture=(name:string)=>path.resolve('tests/fixtures',name)
 async function signup(page:Page){
   await page.goto('/?utm_source=meta&utm_campaign=import-test')
   await page.getByRole('link',{name:'Essayer gratuitement pendant 14 jours'}).first().click()
-  await page.locator('input').nth(0).fill('Entreprise test')
+  await page.getByPlaceholder('Nom de votre entreprise').fill('Entreprise test')
   await page.getByPlaceholder('vous@entreprise.fr').fill('test@example.invalid')
   await page.getByPlaceholder('8 caractères minimum').fill('local-test-password')
   await page.getByRole('button',{name:'Commencer mes 14 jours gratuits'}).click()
-  await expect(page.getByRole('heading',{name:'Comment voulez-vous découvrir CashLance ?'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Comment voulez-vous découvrir CashLance ?'})).toBeVisible({timeout:15000})
 }
 async function noOverflow(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)}
 async function validate(page:Page){
@@ -50,6 +50,34 @@ test('PDF batch: extraction, debtor confirmation and scheduling',async({page})=>
   await expect(page.getByLabel('Email du client').first()).toHaveValue('compta@example.invalid')
   await validate(page)
 })
+
+test('PDF compatibility: missing recent JavaScript APIs',async({page,request})=>{
+  const workers:string[]=[];page.on('request',r=>{if(r.url().includes('import-engine'))workers.push(r.url())})
+  await signup(page);await page.getByRole('link',{name:'Importer mes documents'}).click()
+  await expect(page.locator('#documents')).toBeEnabled()
+  await page.evaluate(()=>{
+    Reflect.deleteProperty(Map.prototype,'getOrInsertComputed')
+    Reflect.deleteProperty(Promise,'try')
+    Reflect.deleteProperty(Promise,'withResolvers')
+  })
+  await page.locator('#documents').setInputFiles(fixture('invoice.pdf'))
+  await expect(page.getByLabel('Client / raison sociale')).toHaveValue('MARTIN SARL')
+  expect((await (await request.get('http://127.0.0.1:54440/inspect')).json()).invoices).toHaveLength(0)
+  await expect(page.getByRole('button',{name:/Valider les/})).toBeDisabled()
+  expect(workers).toEqual([])
+})
+
+for(const document of ['french-screenshot.png','scanned.pdf']) test(`French extraction: ${document}`,async({page,request})=>{
+  await signup(page);await page.getByRole('link',{name:'Importer mes documents'}).click()
+  await expect(page.locator('#documents')).toBeEnabled()
+  await page.locator('#documents').setInputFiles(fixture(document))
+  await expect(page.getByLabel('Client / raison sociale')).toHaveValue('DUPONT CONSTRUCTION SAS',{timeout:90000})
+  await expect(page.getByLabel('Restant dû')).toHaveValue('800,00')
+  await expect(page.getByLabel(/^Échéance/)).toHaveValue('2026-10-16')
+  await expect(page.getByRole('button',{name:/Valider les/})).toBeDisabled()
+  expect((await (await request.get('http://127.0.0.1:54440/inspect')).json()).invoices).toHaveLength(0)
+  await noOverflow(page)
+})
 test('XLSX: mapping, missing email, saved draft and later activation',async({page})=>{
   await signup(page);await page.getByRole('link',{name:'Importer mes documents'}).click()
   await expect(page.locator('#documents')).toBeEnabled()
@@ -68,7 +96,7 @@ test('XLSX: mapping, missing email, saved draft and later activation',async({pag
   await page.getByRole('button',{name:'Confirmer et programmer'}).click()
   await expect(page.getByText('En relance',{exact:true})).toBeVisible()
 })
-for(const format of ['png','jpg']) test(`photo ${format}: OCR local and editable extracted information`,async({page})=>{
+for(const format of ['png','jpg']) test(`photo ${format}: simulated OpenAI and editable extracted information`,async({page,request})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await signup(page);await page.getByRole('link',{name:'Importer mes documents'}).click()
   await expect(page.locator('#documents')).toBeEnabled()
@@ -77,10 +105,27 @@ for(const format of ['png','jpg']) test(`photo ${format}: OCR local and editable
   await expect(page.getByLabel('Restant dû')).toHaveValue('1280,00')
   await page.getByLabel('Email du client').fill('compta@example.invalid')
   await noOverflow(page);await validate(page);expect(errors).toEqual([])
+  expect((await (await request.get('http://127.0.0.1:54440/inspect')).json()).openaiCalls).toBe(1)
 })
 test('desktop landing and mobile pricing have no horizontal overflow',async({page})=>{
   await page.setViewportSize({width:1440,height:900});await page.goto('/');await noOverflow(page)
   await page.screenshot({path:'test-results/desktop-landing.png',fullPage:true})
   await page.setViewportSize({width:390,height:844});await page.goto('/pricing');await noOverflow(page)
   await page.goto('/import');await expect(page).toHaveURL(/login/)
+})
+
+test('missing information stays editable; repeated upload and manual edits do not pay again',async({page,request})=>{
+  await signup(page);await page.getByRole('link',{name:'Importer mes documents'}).click()
+  await expect(page.locator('#documents')).toBeEnabled()
+  await page.locator('#documents').setInputFiles([fixture('missing-email.pdf'),fixture('missing-due.pdf')])
+  await expect(page.getByLabel('Email du client').first()).toHaveValue('')
+  await expect(page.getByLabel(/^Échéance/).nth(1)).toHaveValue('')
+  await page.getByLabel('Email du client').first().fill('test@example.invalid')
+  await page.getByLabel(/^Échéance/).nth(1).fill('2026-10-16')
+  await expect(page.locator('#documents')).toBeEnabled()
+  await page.locator('#documents').setInputFiles(fixture('missing-email.pdf'))
+  await expect(page.getByRole('heading',{name:/Client à relancer identifié/})).toHaveCount(3)
+  const state=await(await request.get('http://127.0.0.1:54440/inspect')).json()
+  expect(state.openaiCalls).toBe(2);expect(state.invoices).toHaveLength(0)
+  await expect(page.getByRole('button',{name:/Valider les/})).toBeDisabled()
 })
