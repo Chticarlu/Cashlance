@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { cleanDrafts, sameOrigin, uuid } from '@/lib/imports/server'
 import { dateISO, draftErrors, moneyCents } from '@/lib/imports/model'
 
@@ -19,7 +20,9 @@ export async function POST(req: Request) {
       const errors = draftErrors(row, body.schedule)
       if (errors.length) throw new Error(errors[0])
     }
-    const { data, error } = await db.rpc('confirm_import', {
+    const admin = createAdminClient()
+    const { data, error } = await admin.rpc('confirm_import_server', {
+      p_owner: user.id,
       batch_id: body.batchId, schedule: body.schedule, scenario: body.scenario,
       rows: rows.map(({ id, source, issuer, confirmed, ...row }) => ({
         client: row.client, email: row.email, invoiceNumber: row.invoiceNumber, amount_cents: moneyCents(row.amount),
