@@ -18,10 +18,9 @@ Ne devine aucune donnée. Toute information absente, ambiguë ou illisible doit 
 Dates ISO YYYY-MM-DD, devise ISO explicite (EUR pour €), montants décimaux sans séparateur de milliers ni symbole.
 net=HT, tax=montant TVA (pas un pourcentage), total=TTC. amount=montant explicitement exigible à payer.
 Les libellés « Net à payer », « Net à payer en Euro(s) », « Montant à régler », « Reste à payer », « Solde dû » ou « Restant dû » indiquent explicitement amount si un montant est associé.
-Si un règlement ou acompte apparaît, ne renseigne amount que si le document indique explicitement le solde après ce paiement ; sinon amount=null.
-Un simple « Total TTC » ne suffit jamais à renseigner amount.
-Ne recopie jamais total dans amount par hypothèse. Ne calcule pas d'échéance : recopie les conditions dans paymentTerms,
-et laisse due=null en l'absence de date explicite. Ne confonds pas date du document et échéance.
+Si aucun règlement, acompte, avoir, crédit ou solde déjà déduit n'apparaît et que le document présente un montant TTC/total EUR unique à payer, tu peux proposer ce total comme amount ; la proposition sera obligatoirement confirmée par l'utilisateur.
+Si un règlement, acompte, avoir ou crédit apparaît, ne renseigne amount que si le document indique explicitement le solde après cette opération ; sinon amount=null.
+Recopie les conditions de paiement dans paymentTerms. Si une date de facture explicite et une condition simple « paiement à N jours » sont toutes deux présentes, due peut être la date de facture + N jours calendaires. Pour fin de mois, jours ouvrés ou toute condition ambiguë, laisse due=null. Ne confonds jamais date du document et échéance.
 firstName/lastName uniquement s'ils sont identifiables. Tous les résultats seront vérifiés par l'utilisateur.`
 
 export function validateExtraction(value: unknown) {
@@ -32,6 +31,14 @@ export function validateExtraction(value: unknown) {
   const row=emptyDraft()
   for(const k of keys) (row as unknown as Record<string,unknown>)[k]=typeof v[k]==='string'?(v[k] as string).trim().replace(/[\u0000-\u0008\u000b-\u001f]/g,''):''
   for(const k of ['due','invoiceDate'] as const) row[k]=dateISO(row[k])
+  if(!row.due && row.invoiceDate && row.paymentTerms) {
+    const m=row.paymentTerms.match(/(?:paiement|r[èe]glement)\s*(?:[àa]|:)\s*(\d{1,3})\s*jours(?![^\n]*(?:fin de mois|ouvr[ée]s))/i)
+    if(m && Number(m[1])<=365) {
+      const due=new Date(row.invoiceDate+'T00:00:00Z')
+      due.setUTCDate(due.getUTCDate()+Number(m[1]))
+      row.due=dateISO(due.toISOString().slice(0,10))
+    }
+  }
   for(const k of ['amount','net','tax','total'] as const) if(moneyCents(row[k])===null||moneyCents(row[k])!<0) row[k]=''
   if(row.email&&!isValidEmail(row.email)) row.email=''
   if(row.currency&&!/^[A-Z]{3}$/.test(row.currency)) row.currency=''
