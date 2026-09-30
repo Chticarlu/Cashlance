@@ -14,6 +14,11 @@ it.each(['reviewed','confirmed','email'])('rejects missing %s',async(field)=>{
   const body=payload();if(field==='reviewed')body.reviewed=false;else if(field==='confirmed')body.rows[0].confirmed=false;else body.rows[0].email=''
   expect((await POST(req(body))).status).toBe(400);expect(mocks.rpc).not.toHaveBeenCalled()
 })
+it('rejects malformed customer email domains before the import RPC',async()=>{
+  const body=payload();body.rows[0].email='client@gmail.c'
+  expect((await POST(req(body))).status).toBe(400)
+  expect(mocks.rpc).not.toHaveBeenCalled()
+})
 it('uses one atomic RPC with normalized amount/date and no client-supplied owner',async()=>{
   const body=payload();expect((await POST(req({...body,organization_id:'foreign'}))).status).toBe(200)
   expect(mocks.rpc).toHaveBeenCalledWith('confirm_import',expect.objectContaining({rows:[expect.objectContaining({amount_cents:128000,due:'2026-09-30',confirmed:true})]}))
