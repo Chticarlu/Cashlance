@@ -16,7 +16,10 @@ Les champs d'adresse, email, téléphone, SIREN/SIRET, nom et prénom concernent
 Utilise les libellés Adresse de facturation, Destinataire, Client ; Compte client est une référence, pas une entreprise.
 Ne devine aucune donnée. Toute information absente, ambiguë ou illisible doit être null.
 Dates ISO YYYY-MM-DD, devise ISO explicite (EUR pour €), montants décimaux sans séparateur de milliers ni symbole.
-net=HT, tax=montant TVA (pas un pourcentage), total=TTC. amount=restant dû UNIQUEMENT s'il est explicitement indiqué.
+net=HT, tax=montant TVA (pas un pourcentage), total=TTC. amount=montant explicitement exigible à payer.
+Les libellés « Net à payer », « Net à payer en Euro(s) », « Montant à régler », « Reste à payer », « Solde dû » ou « Restant dû » indiquent explicitement amount si un montant est associé.
+Si un règlement ou acompte apparaît, ne renseigne amount que si le document indique explicitement le solde après ce paiement ; sinon amount=null.
+Un simple « Total TTC » ne suffit jamais à renseigner amount.
 Ne recopie jamais total dans amount par hypothèse. Ne calcule pas d'échéance : recopie les conditions dans paymentTerms,
 et laisse due=null en l'absence de date explicite. Ne confonds pas date du document et échéance.
 firstName/lastName uniquement s'ils sont identifiables. Tous les résultats seront vérifiés par l'utilisateur.`
