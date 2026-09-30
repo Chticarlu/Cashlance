@@ -44,7 +44,7 @@ export async function POST(req:Request) {
     const {bytes,name}=await readDocument(req)
     owner=user.id; admin=createAdminClient()
     // Version the analysis cache when extraction rules change, while keeping documents private.
-    const hash=createHash('sha256').update('cashlance-invoice-v3\0').update(bytes).digest('hex')
+    const hash=createHash('sha256').update('cashlance-invoice-v4\0').update(bytes).digest('hex')
     const {data:slot,error:quotaError}=await admin.rpc('reserve_import_analysis',{p_user_id:owner,p_hash:hash})
     if(quotaError||!slot) throw new AnalysisError('Protection des analyses indisponible. Vérifiez la migration avant de réessayer.',503)
     if(slot.status==='cached') return json({row:{...validateExtraction(slot.result),source:name},cached:true})
