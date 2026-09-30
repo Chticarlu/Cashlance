@@ -1,9 +1,11 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { attribution } from '@/lib/funnel'
+import { getAppUrl } from '@/lib/app-url'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,6 +15,8 @@ export default function LoginPage() {
   const [company, setCompany] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [tips, setTips] = useState(false)
+  useEffect(() => { if (new URLSearchParams(location.search).get('mode') === 'signup') setMode('signup') }, [])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -25,29 +29,31 @@ export default function LoginPage() {
       return
     }
 
+    try {
     const supabase = createClient()
     if (mode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setMessage(error.message)
       else {
-        router.push('/dashboard')
+        router.push(new URLSearchParams(location.search).get('next') === 'import' ? '/import' : '/dashboard')
         router.refresh()
       }
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { company_name: company.trim() } },
+        options: { emailRedirectTo: `${getAppUrl()}/auth/callback`, data: { company_name: company.trim(), attribution: attribution(), onboarding_emails: tips } },
       })
       if (error) setMessage(error.message)
       else if (data.session) {
-        router.push('/dashboard')
+        router.push('/onboarding')
         router.refresh()
       } else {
         setMessage('Compte créé. Vérifie ton e-mail pour confirmer ton inscription.')
       }
     }
-    setLoading(false)
+    } catch { setMessage('Connexion indisponible. Réessayez dans un instant.') }
+    finally { setLoading(false) }
   }
 
   return (
@@ -66,7 +72,8 @@ export default function LoginPage() {
           <input className="field" value={email} onChange={e => setEmail(e.target.value)} type="email" required placeholder="vous@entreprise.fr" />
           <label>Mot de passe</label>
           <input className="field" value={password} onChange={e => setPassword(e.target.value)} minLength={8} type="password" required placeholder="8 caractères minimum" />
-          <button disabled={loading} className="btn full">{loading ? 'Chargement…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
+          {mode === 'signup' && <label className="check"><input type="checkbox" checked={tips} onChange={e => setTips(e.target.checked)} />Recevoir quelques rappels utiles pour démarrer et avant la fin de l’essai. Désactivable dans le tableau de bord.</label>}
+          <button disabled={loading} className="btn full">{loading ? 'Chargement…' : mode === 'login' ? 'Se connecter' : 'Commencer mes 14 jours gratuits'}</button>
         </form>
         {message && <p className="notice">{message}</p>}
         <p><Link href="/">← Retour à l’accueil</Link></p>

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { reminderCopy } from '@/lib/reminders'
+import { sendOnboardingEmails } from '@/lib/onboarding-emails'
+import { canSendImportedReminder } from '@/lib/trial'
 
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
@@ -14,20 +16,15 @@ export async function GET(req: Request) {
 
   const db = createAdminClient()
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const now = new Date().toISOString()
-  const { data: reminders, error } = await db
-    .from('reminders')
-    .select('id,stage,invoice_id,invoices!inner(id,organization_id,invoice_number,amount_cents,status,customers!inner(name,email))')
-    .eq('state', 'pending')
-    .lte('scheduled_for', now)
-    .limit(50)
+  const { data: reminders, error } = await db.rpc('due_reminder_batch')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'File de relances indisponible.' }, { status: 500 })
   let sent = 0
 
   for (const reminder of reminders || []) {
     const inv: any = reminder.invoices
     if (!inv || inv.status !== 'open' || !inv.customers?.email) continue
+    if (inv.import_key && (!inv.reviewed_at || !inv.reminder_scenario || !canSendImportedReminder(inv.organizations))) continue
     const customer = inv.customers
     const copy = reminderCopy(reminder.stage, customer.name, inv.amount_cents, inv.invoice_number)
     const replyTo = process.env.CASHLANCE_INBOUND_DOMAIN
@@ -61,5 +58,6 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, processed: reminders?.length || 0, sent })
+  const onboardingSent = await sendOnboardingEmails(db, resend)
+  return NextResponse.json({ ok: true, processed: reminders?.length || 0, sent, onboardingSent })
 }
