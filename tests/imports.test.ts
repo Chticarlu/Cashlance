@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest'
 import { extractInvoice } from '../lib/imports/extract'
 import { parseCSV,suggestMapping,mappedRows } from '../lib/imports/tabular'
-import { emptyDraft,dateISO,moneyCents,draftErrors,previewSchedule } from '../lib/imports/model'
+import { emptyDraft,restoreDraft,dateISO,moneyCents,draftErrors,previewSchedule } from '../lib/imports/model'
 import { cleanDrafts } from '../lib/imports/server'
 import { canSendImportedReminder } from '../lib/trial'
 import { onboardingMessage } from '../lib/onboarding-emails'
@@ -42,6 +42,18 @@ describe('CSV and column mapping',()=>{
   it('rejects malformed and oversized files',()=>{expect(()=>parseCSV('CLIENT;NOTE\n"unclosed')).toThrow();expect(()=>parseCSV('CLIENT\n'+Array(202).fill('x').join('\n'))).toThrow()})
 })
 describe('review and schedule guards',()=>{
+  it('restores legacy drafts without losing values or trusting their previous confirmation',()=>{
+    const saved={id:'old-id',source:'old.pdf',issuer:'SUPPLIER',client:'CLIENT',invoiceNumber:'OLD-1',amount:'100',currency:'EUR',due:'2026-10-10',email:'test@example.invalid',confirmed:true}
+    const restored=restoreDraft(saved)
+    expect(restored).toMatchObject({...saved,confirmed:false,paymentTerms:'',invoiceDate:''})
+    expect(draftErrors(restored,true)).toEqual([])
+    expect(saved).not.toHaveProperty('paymentTerms')
+  })
+  it('normalizes null fields in restored drafts and preserves current payment terms',()=>{
+    expect(restoreDraft({client:null,email:3,paymentTerms:null})).toMatchObject({client:'',email:'',paymentTerms:'',confirmed:false})
+    expect(restoreDraft({...emptyDraft(),paymentTerms:'45 jours'}).paymentTerms).toBe('45 jours')
+    expect(()=>restoreDraft(null)).toThrow('Brouillon illisible')
+  })
   it.each([['1 280,50',128050],['1.280,50',128050],['1,280.50',128050],['0',0],['(20,00)',-2000],['12oops',null],['1.234',null]])('parses money %s',(s,n)=>expect(moneyCents(s as string)).toBe(n))
   it.each(['31/02/2026','2026-13-01','09/10/26',''])('rejects invalid date %s',s=>expect(dateISO(s)).toBe(''))
   it('requires an email only to schedule, still requires other essential fields',()=>{

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { dateISO, Draft, draftErrors, emptyDraft, Field, fields, MAX_FILES, MAX_ROWS, previewSchedule, Scenario, scenarios } from '@/lib/imports/model'
+import { dateISO, Draft, draftErrors, emptyDraft, restoreDraft, Field, fields, MAX_FILES, MAX_ROWS, previewSchedule, Scenario, scenarios } from '@/lib/imports/model'
 import { mappedRows, suggestMapping, Table } from '@/lib/imports/tabular'
 import { track } from '@/lib/funnel'
 
@@ -24,7 +24,7 @@ export default function ImportWorkspace() {
     fetch('/api/imports/draft').then(async res => {
       if (!res.ok) throw new Error('Sauvegarde des brouillons indisponible. Gardez cette page ouverte.')
       return res.json()
-    }).then(data => { if (live && data?.rows?.length) { setRows(data.rows.map((r: Draft) => ({ ...r, confirmed: false }))); setBatchId(data.batch_id); setSaved('Brouillon retrouvé : vérifiez-le avant de continuer.') } })
+    }).then(data => { if (live && Array.isArray(data?.rows) && data.rows.length) { setRows(data.rows.map(restoreDraft)); setBatchId(data.batch_id); setSaved('Brouillon retrouvé : vérifiez-le avant de continuer.') } })
       .catch(e => { if (live) setSaved(e.message) }).finally(() => { if (live) setLoaded(true) })
     return () => { live = false }
   }, [])

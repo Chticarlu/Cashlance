@@ -11,6 +11,25 @@ async function signup(page:Page){
   await expect(page.getByRole('heading',{name:'Comment voulez-vous découvrir CashLance ?'})).toBeVisible({timeout:15000})
 }
 async function noOverflow(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)}
+
+for(const direct of [false,true]) test(`legacy draft after authentication: ${direct?'direct URL':'navigation'}`,async({page,request})=>{
+  const errors:string[]=[]
+  page.on('pageerror',e=>{errors.push(e.message);console.log('Browser JavaScript error:',e.message)})
+  page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.log('Browser console error:',m.text())}})
+  await signup(page)
+  const {emptyDraft}=await import('../../lib/imports/model')
+  const legacy:Record<string,unknown>={...emptyDraft(),client:'CLIENT HISTORIQUE',invoiceNumber:'OLD-001',amount:'100',currency:'EUR',due:'2026-10-10',email:'test@example.invalid',confirmed:true}
+  delete legacy.paymentTerms
+  await request.post('http://127.0.0.1:54440/rest/v1/import_drafts',{data:{batch_id:crypto.randomUUID(),rows:[legacy]}})
+  if(direct)await page.goto('/import')
+  else await page.getByRole('link',{name:'Importer mes documents'}).click()
+  await expect(page.getByLabel('Client / raison sociale')).toHaveValue('CLIENT HISTORIQUE')
+  await page.getByText('Modifier les informations complémentaires',{exact:true}).click()
+  await expect(page.getByLabel('Conditions de paiement')).toHaveValue('')
+  await expect(page.getByRole('checkbox',{name:/J’ai vérifié/})).not.toBeChecked()
+  await expect(page.getByRole('button',{name:/Valider les/})).toBeDisabled()
+  expect(errors).toEqual([])
+})
 async function validate(page:Page){
   for(const checkbox of await page.getByRole('checkbox',{name:/J’ai vérifié/}).all())await checkbox.check()
   await page.getByRole('checkbox',{name:/Je confirme les informations/}).check()

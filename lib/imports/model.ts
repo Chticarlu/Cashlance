@@ -14,6 +14,16 @@ export const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u03
 export function emptyDraft(source = ''): Draft {
   return { ...Object.fromEntries(Object.keys(fields).map(k => [k, ''])), id: crypto.randomUUID(), source, issuer: '', confirmed: false } as Draft
 }
+// Saved drafts can predate optional fields added in a later release.
+export function restoreDraft(value: unknown): Draft {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Brouillon illisible. Réessayez avant de modifier vos créances.')
+  const saved = value as Record<string, unknown>
+  const row = emptyDraft()
+  for (const key of [...Object.keys(fields), 'id', 'source', 'issuer'] as (keyof Omit<Draft, 'confirmed'>)[]) {
+    if (typeof saved[key] === 'string') row[key] = saved[key]
+  }
+  return row // Every restored proposal must be confirmed again.
+}
 export function moneyCents(value: string): number | null {
   let s = value.trim().replace(/(?:EUR|€)/gi, '').replace(/[\s\u00a0\u202f]/g, '')
   if (/^\(.*\)$/.test(s)) s = '-' + s.slice(1, -1)
