@@ -33,6 +33,16 @@ it.each(['invoice.pdf','scanned.pdf','invoice.jpg','invoice.png','french-screens
   expect(m.rpc).toHaveBeenCalledWith('reserve_import_analysis',expect.objectContaining({p_user_id:m.user!.id,p_hash:expect.stringMatching(/^[a-f0-9]{64}$/)}))
   expect(m.from.mock.calls.every(([table])=>table==='import_analyses')).toBe(true)
 },15000)
+it('recognizes explicitly payable French amounts without assuming TTC equals the balance',async()=>{
+  const payable='115.36'
+  vi.mocked(fetch).mockResolvedValueOnce(Response.json(reply(extraction({total:'115.36',amount:payable}))))
+  const response=await POST(request([file()]))
+  expect(response.status).toBe(200)
+  expect((await response.json()).row).toMatchObject({amount:payable,total:'115.36',confirmed:false})
+  const requestBody=JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
+  expect(requestBody.instructions).toContain('Net à payer en Euro')
+  expect(requestBody.instructions).toContain('Un simple « Total TTC » ne suffit jamais')
+})
 it('keeps missing email, due and remaining balance empty; never copies TTC',()=>{
   expect(validateExtraction(extraction({paymentTerms:'Paiement à 45 jours'}))).toMatchObject({email:'',due:'',amount:'',total:'1280.00',paymentTerms:'Paiement à 45 jours',confirmed:false})
 })
