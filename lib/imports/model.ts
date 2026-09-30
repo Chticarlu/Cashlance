@@ -11,6 +11,7 @@ export const fields = {
 export type Field = keyof typeof fields
 export type Draft = Record<Field, string> & { id: string; source: string; issuer: string; confirmed: boolean }
 export const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+export const isValidEmail = (value: string) => /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[A-Za-z]{2,63}$/.test(value.trim())
 export function emptyDraft(source = ''): Draft {
   return { ...Object.fromEntries(Object.keys(fields).map(k => [k, ''])), id: crypto.randomUUID(), source, issuer: '', confirmed: false } as Draft
 }
@@ -53,7 +54,7 @@ export function draftErrors(row: Draft, schedule: boolean): string[] {
   const cents = moneyCents(row.amount)
   if (cents === null || cents <= 0) errors.push('Restant dû invalide ou manquant')
   if (row.currency.toUpperCase() !== 'EUR') errors.push('Confirmez la devise EUR (seule devise prise en charge)')
-  if ((schedule || row.email.trim()) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) errors.push('Email requis pour les relances')
+  if ((schedule || row.email.trim()) && !isValidEmail(row.email)) errors.push('Email client invalide ou manquant')
   if (row.invoiceDate && !dateISO(row.invoiceDate)) errors.push('Date de facture invalide')
   for (const k of ['net','tax','total'] as const) if (row[k] && (moneyCents(row[k]) === null || moneyCents(row[k])! < 0)) errors.push(`${fields[k]} invalide`)
   if (row.total && cents !== null && moneyCents(row.total) !== null && cents > moneyCents(row.total)!) errors.push('Restant dû supérieur au TTC')
