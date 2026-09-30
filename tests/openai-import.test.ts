@@ -46,6 +46,9 @@ it('recognizes explicitly payable French amounts without assuming TTC equals the
 it('keeps missing email, due and remaining balance empty; never copies TTC',()=>{
   expect(validateExtraction(extraction({paymentTerms:'Paiement à 45 jours'}))).toMatchObject({email:'',due:'',amount:'',total:'1280.00',paymentTerms:'Paiement à 45 jours',confirmed:false})
 })
+it('drops malformed extracted customer emails',()=>{
+  expect(validateExtraction(extraction({email:'client@gmail.c'}))).toMatchObject({email:''})
+})
 it('strictly rejects extra fields, wrong types, non-invoices, and invalid data formats',()=>{
   for(const v of [extraction({confirmed:true}),extraction({total:1280}),extraction({isInvoice:false})])expect(()=>validateExtraction(v)).toThrow()
   expect(validateExtraction(extraction({due:'2026-02-31',email:'invalid',amount:'invented',currency:'euros'}))).toMatchObject({due:'',email:'',amount:'',currency:''})
