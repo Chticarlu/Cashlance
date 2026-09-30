@@ -1,48 +1,29 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import AddInvoiceForm from '@/components/add-invoice-form'
+import DemoPanel from '@/components/demo-panel'
+import ActivateInvoice from '@/components/activate-invoice'
+import EmailPreferences from '@/components/email-preferences'
 import { createClient } from '@/lib/supabase/server'
-
-type InvoiceRow = { id:string, invoice_number:string|null, amount_cents:number, due_date:string, status:string, customers:{name:string}|null }
-const demo: InvoiceRow[] = [
-  { id:'1', invoice_number:'FAC-1042', amount_cents:248000, due_date:'2026-09-19', status:'promised', customers:{name:'Durand Bâtiment'} },
-  { id:'2', invoice_number:'FAC-1047', amount_cents:195000, due_date:'2026-09-17', status:'open', customers:{name:'Studio Nova'} },
-  { id:'3', invoice_number:'FAC-1051', amount_cents:42000, due_date:'2026-09-23', status:'disputed', customers:{name:'Maison Lemaire'} },
-]
-
-const labels: Record<string,string> = { open:'En relance', promised:'Promesse de paiement', disputed:'Litige', paid:'Payée' }
-
+type Invoice = { id:string; invoice_number:string|null; amount_cents:number; due_date:string; status:string; import_key:string|null; reminder_scenario:string|null; customers:{name:string;email:string|null}|null }
+const labels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
+const euro=(cents:number)=>(cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})
+export const metadata={title:'Mon tableau de bord — CashLance',robots:{index:false,follow:false}}
 export default async function Dashboard() {
-  const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
-  let invoices = demo
-  let isDemo = true
-
-  if (configured) {
-    const supabase = await createClient()
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) redirect('/login')
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('id,invoice_number,amount_cents,due_date,status,customers(name)')
-      .neq('status','paid')
-      .order('due_date', { ascending: true })
-    if (!error) {
-      invoices = (data || []) as unknown as InvoiceRow[]
-      isDemo = false
-    }
-  }
-
-  const total = invoices.reduce((sum, x) => sum + x.amount_cents, 0)
-  const promises = invoices.filter(x => x.status === 'promised').reduce((sum,x) => sum + x.amount_cents,0)
-  const actions = invoices.filter(x => x.status === 'disputed').length
-
-  return <div className="dash">
-    <aside className="side"><Link href="/" className="brand">Cash<b>lance</b></Link><nav><a className="active">Tableau de bord</a><a>Factures</a><a>Relances</a><a>Clients</a><a>Paramètres</a></nav></aside>
-    <main className="main">
-      <div className="toolbar"><div><h1>Trésorerie à récupérer</h1><div className="muted">Priorisez les factures qui nécessitent une action.</div></div><AddInvoiceForm /></div>
-      {isDemo && <div className="demoBanner">Mode démo — connectez Supabase pour enregistrer les vraies factures.</div>}
-      <div className="kpis kpisDash"><div className="kpi"><small>À encaisser</small><strong>{(total/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong></div><div className="kpi"><small>Promesses</small><strong>{(promises/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong></div><div className="kpi"><small>Actions manuelles</small><strong>{actions}</strong></div></div>
-      <div className="table"><table><thead><tr><th>Facture</th><th>Client</th><th>Montant</th><th>Échéance</th><th>État</th></tr></thead><tbody>{invoices.length ? invoices.map(x => <tr key={x.id}><td>{x.invoice_number || '—'}</td><td>{x.customers?.name || 'Client'}</td><td>{(x.amount_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</td><td>{new Date(x.due_date+'T12:00:00').toLocaleDateString('fr-FR')}</td><td><span className={`status status-${x.status}`}>{labels[x.status] || x.status}</span></td></tr>) : <tr><td colSpan={5} className="empty">Aucune facture en retard. Bonne nouvelle.</td></tr>}</tbody></table></div>
-    </main>
-  </div>
+  const db=await createClient(); const {data:{user}}=await db.auth.getUser(); if(!user) redirect('/login')
+  const [result,organization,preferences]=await Promise.all([
+    db.from('invoices').select('id,invoice_number,amount_cents,due_date,status,import_key,reminder_scenario,customers(name,email)').neq('status','paid').order('due_date',{ascending:true}),
+    db.from('organizations').select('created_at,subscription_status,stripe_customer_id').eq('owner_id',user.id).maybeSingle(),
+    db.from('onboarding_state').select('opted_in').eq('user_id',user.id).maybeSingle(),
+  ])
+  const invoices=(result.data||[]) as unknown as Invoice[]
+  const total=invoices.reduce((n,i)=>n+i.amount_cents,0)
+  return <main className="wrap"><nav className="nav"><Link className="brand" href="/">Cash<b>lance</b></Link><Link href="/pricing">Mon abonnement</Link></nav>
+    <section className="section"><div className="toolbar"><div><h1>Vos créances, vos prochaines actions</h1><p className="muted">Importez, vérifiez, puis programmez vos relances.</p></div><Link className="btn" href="/import">Importer mes documents</Link></div>
+    {result.error && <p className="notice error" role="alert">Impossible de charger les créances. Réessayez dans un instant.</p>}
+    {!result.error && !invoices.length && <div className="card"><h2>Comment voulez-vous commencer ?</h2><p>Importez vos documents, ou découvrez le fonctionnement avec un exemple sans envoi.</p><DemoPanel /></div>}
+    <div className="kpis kpisDash"><div className="kpi"><small>À encaisser</small><strong>{euro(total)}</strong></div><div className="kpi"><small>Promesses</small><strong>{euro(invoices.filter(i=>i.status==='promised').reduce((n,i)=>n+i.amount_cents,0))}</strong></div><div className="kpi"><small>À vérifier / programmer</small><strong>{invoices.filter(i=>i.status==='disputed'||(i.import_key&&!i.reminder_scenario)).length}</strong></div></div>
+    <div className="invoice-list">{invoices.map(i=><article className="card" key={i.id}><h2>{i.customers?.name||'Client'}</h2><p>{i.invoice_number||'Sans numéro'} · <strong>{euro(i.amount_cents)}</strong></p><p>Échéance : {new Date(i.due_date+'T12:00:00').toLocaleDateString('fr-FR')}<br />Email : {i.customers?.email||'Information manquante'}</p><span className="badge">{i.import_key&&!i.reminder_scenario?'À programmer':labels[i.status]||i.status}</span>{i.import_key&&!i.reminder_scenario&&i.status==='open'&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}</article>)}</div>
+    <p className="muted">Vous pouvez aussi saisir une créance dans l’écran d’import, puis vérifier les informations avant de programmer.</p>
+    {organization.data?.stripe_customer_id && <form method="POST" action="/api/stripe/portal"><button className="btn alt">Gérer mon abonnement</button></form>}
+    <details><summary>Préférences emails</summary><EmailPreferences initial={preferences.data?.opted_in===true} /></details></section></main>
 }

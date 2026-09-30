@@ -9,3 +9,8 @@ coverage/
 
 .vercel
 .env*
+
+/public/import-engine/
+/test-results/
+/playwright-report/
+/supabase/.temp/
