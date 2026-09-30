@@ -1,0 +1,5 @@
+# Preserve document fixtures byte-for-byte on Windows (PDF xref offsets matter).
+*.pdf binary
+*.png binary
+*.jpg binary
+*.xlsx binary

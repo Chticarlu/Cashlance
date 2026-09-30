@@ -3,5 +3,5 @@ import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('.', import.meta.url)) } },
-  test: { environment: 'node', clearMocks: true, restoreMocks: true, setupFiles: ['./tests/setup.ts'] },
+  test: { include: ['tests/*.test.ts'], environment: 'node', clearMocks: true, restoreMocks: true, setupFiles: ['./tests/setup.ts'] },
 })
