@@ -1,4 +1,4 @@
-import { dateISO, emptyDraft, fields, moneyCents } from './model'
+import { dateISO, emptyDraft, fields, isValidEmail, moneyCents } from './model'
 import { AnalysisError } from './analysis-document'
 
 export const INVOICE_MODEL = 'gpt-4.1-mini-2025-04-14'
@@ -33,7 +33,7 @@ export function validateExtraction(value: unknown) {
   for(const k of keys) (row as unknown as Record<string,unknown>)[k]=typeof v[k]==='string'?(v[k] as string).trim().replace(/[\u0000-\u0008\u000b-\u001f]/g,''):''
   for(const k of ['due','invoiceDate'] as const) row[k]=dateISO(row[k])
   for(const k of ['amount','net','tax','total'] as const) if(moneyCents(row[k])===null||moneyCents(row[k])!<0) row[k]=''
-  if(row.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) row.email=''
+  if(row.email&&!isValidEmail(row.email)) row.email=''
   if(row.currency&&!/^[A-Z]{3}$/.test(row.currency)) row.currency=''
   // Do not let an inferred name substitute for an explicit debtor.
   if(!row.client) row.client=[row.firstName,row.lastName].filter(Boolean).join(' ')
