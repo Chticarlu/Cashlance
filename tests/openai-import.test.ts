@@ -41,10 +41,13 @@ it('recognizes explicitly payable French amounts without assuming TTC equals the
   expect((await response.json()).row).toMatchObject({amount:payable,total:'115.36',confirmed:false})
   const requestBody=JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
   expect(requestBody.instructions).toContain('Net à payer en Euro')
-  expect(requestBody.instructions).toContain('Un simple « Total TTC » ne suffit jamais')
+  expect(requestBody.instructions).toContain('tu peux proposer ce total comme amount')
 })
-it('keeps missing email, due and remaining balance empty; never copies TTC',()=>{
-  expect(validateExtraction(extraction({paymentTerms:'Paiement à 45 jours'}))).toMatchObject({email:'',due:'',amount:'',total:'1280.00',paymentTerms:'Paiement à 45 jours',confirmed:false})
+it('derives a simple calendar due date from an explicit invoice date and payment terms',()=>{
+  expect(validateExtraction(extraction({invoiceDate:'2026-09-04',paymentTerms:'Paiement à 45 jours',amount:'246.73',total:'246.73'}))).toMatchObject({email:'',due:'2026-10-19',amount:'246.73',total:'246.73',paymentTerms:'Paiement à 45 jours',confirmed:false})
+})
+it('keeps ambiguous month-end terms without an inferred due date',()=>{
+  expect(validateExtraction(extraction({invoiceDate:'2026-09-04',paymentTerms:'Paiement à 45 jours fin de mois'}))).toMatchObject({due:'',confirmed:false})
 })
 it('drops malformed extracted customer emails',()=>{
   expect(validateExtraction(extraction({email:'client@gmail.c'}))).toMatchObject({email:''})
