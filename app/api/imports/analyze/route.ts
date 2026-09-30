@@ -43,7 +43,8 @@ export async function POST(req:Request) {
     if(!process.env.OPENAI_API_KEY) return json({error:'L’analyse automatique n’est pas configurée. La saisie manuelle reste disponible.'},503)
     const {bytes,name}=await readDocument(req)
     owner=user.id; admin=createAdminClient()
-    const hash=createHash('sha256').update(bytes).digest('hex')
+    // Version the analysis cache when extraction rules change, while keeping documents private.
+    const hash=createHash('sha256').update('cashlance-invoice-v2\0').update(bytes).digest('hex')
     const {data:slot,error:quotaError}=await admin.rpc('reserve_import_analysis',{p_user_id:owner,p_hash:hash})
     if(quotaError||!slot) throw new AnalysisError('Protection des analyses indisponible. Vérifiez la migration avant de réessayer.',503)
     if(slot.status==='cached') return json({row:{...validateExtraction(slot.result),source:name},cached:true})
