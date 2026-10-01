@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         }),
         metadata: { organization_id: org.id, plan },
       },
-    }, { idempotencyKey: `checkout/${org.id}/${plan}/${Math.floor(Date.now()/1800000)}` })
+    }, { idempotencyKey: `checkout/${org.id}/${org.stripe_subscription_id || 'first'}/${plan}/${Math.floor(Date.now()/1800000)}` })
 
     if (!session.url) throw new Error('URL Stripe Checkout absente')
     return NextResponse.redirect(session.url, 303)
