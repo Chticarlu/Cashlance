@@ -32,6 +32,7 @@ const invoiceLabel=(i:DashboardInvoice)=>{
 export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoice[]}) {
   const [filter,setFilter]=useState('all')
   const [search,setSearch]=useState('')
+  const [sort,setSort]=useState('priority')
 
   const counts=useMemo(()=>Object.fromEntries(['active','stopped','todo','promised','disputed'].map(key=>[
     key,invoices.filter(i=>invoiceState(i)===key).length
@@ -39,13 +40,21 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
 
   const visible=useMemo(()=>{
     const q=search.trim().toLowerCase()
-    return invoices.filter(i=>{
+    const filtered=invoices.filter(i=>{
       const state=invoiceState(i)
       const matchesFilter=filter==='all'||state===filter
       const haystack=`${i.customers?.name||''} ${i.invoice_number||''}`.toLowerCase()
       return matchesFilter&&(!q||haystack.includes(q))
     })
-  },[invoices,filter,search])
+    const priority:Record<string,number>={disputed:0,todo:1,active:2,promised:3,stopped:4,paid:5}
+    return filtered.sort((a,b)=>{
+      if(sort==='amount-desc') return b.amount_cents-a.amount_cents
+      if(sort==='due-asc') return a.due_date.localeCompare(b.due_date)
+      if(sort==='due-desc') return b.due_date.localeCompare(a.due_date)
+      const stateDiff=(priority[invoiceState(a)]??9)-(priority[invoiceState(b)]??9)
+      return stateDiff||a.due_date.localeCompare(b.due_date)
+    })
+  },[invoices,filter,search,sort])
 
   return <>
     <section className="dashboard-filters" aria-label="Filtres des factures">
@@ -57,7 +66,8 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
         placeholder="Rechercher un client ou une facture"
         aria-label="Rechercher un client ou une facture"
       />
-      <div className="filter-chips">
+      <div className="dashboard-filter-row">
+        <div className="filter-chips">
         {[
           ['all','Toutes',invoices.length],
           ['active','En relance',counts.active],
@@ -71,21 +81,35 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
           className={`filter-chip ${filter===value?'active':''}`}
           onClick={()=>setFilter(String(value))}
         >{label} <span>{count}</span></button>)}
+        </div>
+        <label className="sort-control">Trier
+          <select className="field" value={sort} onChange={e=>setSort(e.target.value)}>
+            <option value="priority">Priorité</option>
+            <option value="due-asc">Échéance la plus proche</option>
+            <option value="due-desc">Échéance la plus lointaine</option>
+            <option value="amount-desc">Montant le plus élevé</option>
+          </select>
+        </label>
       </div>
       <p className="muted filter-result">{visible.length} facture{visible.length>1?'s':''} affichée{visible.length>1?'s':''}</p>
     </section>
 
     <div className="invoice-list">
-      {visible.map(i=><article className="card" key={i.id}>
-        <h2>{i.customers?.name||'Client'}</h2>
-        <p>{i.invoice_number||'Sans numéro'} · <strong>{euro(i.amount_cents)}</strong></p>
-        <p>Échéance : {new Date(i.due_date+'T12:00:00').toLocaleDateString('fr-FR')}<br />Email : {i.customers?.email||'Information manquante'}</p>
+      {visible.map(i=>{
+        const days=Math.floor((Date.now()-new Date(i.due_date+'T12:00:00').getTime())/86400000)
+        const timing=days>0?`${days} j de retard`:days===0?'Échéance aujourd’hui':`Échéance dans ${Math.abs(days)} j`
+        const state=invoiceState(i)
+        const next=state==='disputed'?'Traiter le litige':state==='todo'?'Programmer les relances':state==='active'?'Relances automatiques actives':state==='promised'?'Attendre le paiement promis':'Aucun nouvel envoi automatique'
+        return <article className="card dashboard-invoice-card" key={i.id}>
+        <div className="invoice-card-head"><div><h2>{i.customers?.name||'Client'}</h2><span className="muted">{i.invoice_number||'Sans numéro'}</span></div><strong className="invoice-amount">{euro(i.amount_cents)}</strong></div>
+        <div className="invoice-card-meta"><span>{timing}</span><span>{i.customers?.email||'Email manquant'}</span></div>
+        <div className="invoice-next"><small>Prochaine action</small><strong>{next}</strong></div>
         <div className="actions">
           <span className="badge">{invoiceLabel(i)}</span>
           <Link className="btn alt" href={`/invoices/${i.id}`}>Voir la facture</Link>
         </div>
-        {invoiceState(i)==='todo'&&i.import_key&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}
-      </article>)}
+        {state==='todo'&&i.import_key&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}
+      </article>})}
       {!visible.length&&<div className="card"><p className="muted">Aucune facture ne correspond à ce filtre.</p></div>}
     </div>
   </>
