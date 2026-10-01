@@ -32,6 +32,18 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (['email.delivered','email.bounced','email.failed','email.suppressed','email.delivery_delayed'].includes(event.type)) {
+      const providerId = typeof event.data?.email_id === 'string' ? event.data.email_id : ''
+      if (!providerId) return new NextResponse('Bad delivery payload', { status: 400 })
+      const db = createAdminClient()
+      const { data, error } = await db.rpc('record_resend_delivery', {
+        p_provider_id: providerId,
+        p_event: event.type,
+      })
+      if (error) throw error
+      // Other Resend traffic (e.g. onboarding emails) does not belong to a reminder.
+      return NextResponse.json({ ok: true, matched: data?.matched === true })
+    }
     if (event.type !== 'email.received') return new NextResponse('OK')
     const { data: email }: any = await checked(resend.emails.receiving.get(event.data.email_id))
     const recipients = [...(event.data.to || []), ...(email?.to || [])].join(' ')
@@ -62,6 +74,19 @@ export async function POST(req: Request) {
     // A retried event may already be stored after a partial failure. Reapply the
     // idempotent status updates; never acknowledge a different database error.
     if (stored.error && stored.error.code !== '23505') throw stored.error
+
+    // Only a reply from the reminder's recorded recipient is labelled as
+    // a reply to that outgoing message. Other inbound messages remain visible
+    // for human review but cannot masquerade as a customer receipt.
+    const senderAddress = (sender.match(/<([^<>@\\s]+@[^<>@\\s]+)>/)?.[1] || sender).trim().toLowerCase()
+    const { data: previous } = await checked(db.from('outbound_messages')
+      .select('id,recipient_email').eq('invoice_id', invoice.id)
+      .order('created_at', { ascending: false }).limit(20))
+    const repliedMessage = previous?.find(m => m.recipient_email.trim().toLowerCase() === senderAddress)
+    if (repliedMessage) {
+      await checked(db.from('outbound_messages').update({ replied_at: new Date().toISOString() })
+        .eq('id', repliedMessage.id).is('replied_at', null))
+    }
 
     // Do not reopen settled invoices or automate ambiguous interpretations.
     if (invoice.status === 'paid') return new NextResponse('OK')
