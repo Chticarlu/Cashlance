@@ -14,3 +14,56 @@
 .dashboard-filter-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.sort-control{min-width:210px;color:var(--muted);font-size:13px}.sort-control .field{margin:6px 0 0}.dashboard-invoice-card{display:grid;gap:14px}.invoice-card-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.invoice-card-head h2{margin:0 0 4px}.invoice-amount{font-size:24px;white-space:nowrap}.invoice-card-meta{display:flex;flex-wrap:wrap;gap:8px 14px;color:var(--muted);font-size:14px}.invoice-next{background:#091612;border:1px solid var(--line);border-radius:12px;padding:12px}.invoice-next small{display:block;color:var(--muted);margin-bottom:4px}.invoice-next strong{font-size:15px}@media(max-width:700px){.dashboard-filter-row{display:block}.sort-control{display:block;min-width:0;margin-top:12px}.invoice-card-head{align-items:flex-start}.invoice-amount{font-size:21px}.invoice-card-meta{display:grid;gap:4px}.dashboard-invoice-card .actions{display:grid;grid-template-columns:1fr}.dashboard-invoice-card .actions .btn{width:100%}}
 
 .invoice-edit{margin:20px 0}.invoice-edit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.invoice-edit-head h2{margin:0 0 4px}.invoice-edit-form{display:grid;gap:14px;margin-top:16px}.invoice-edit-form label{display:grid;gap:7px;font-size:14px}.invoice-edit-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.invoice-edit-form .field:disabled{opacity:.65;cursor:not-allowed}@media(max-width:600px){.invoice-edit-head{align-items:flex-start}.invoice-edit-columns{grid-template-columns:1fr}}
+
+/* Theme and dashboard display modes */
+:root[data-theme="light"]{color-scheme:light;--bg:#f4f8f6;--panel:#fff;--panel2:#edf4f0;--line:#cbdcd3;--text:#17362b;--muted:#526c60;--accent:#148050}
+html[data-theme="light"],html[data-theme="light"] body{background:linear-gradient(180deg,#f7faf8,#e9f2ec);color:var(--text)}
+html[data-theme="light"] .card,html[data-theme="light"] .panel,html[data-theme="light"] .overview-main,html[data-theme="light"] .overview-stats{background:#fff}
+html[data-theme="light"] .kpi,html[data-theme="light"] .overview-stats div{background:#edf4f0}
+html[data-theme="light"] .field,html[data-theme="light"] .invoice-next,html[data-theme="light"] .message-body{background:#f8fbf9;color:var(--text);border-color:#b7d0c2}
+html[data-theme="light"] .filter-chip,html[data-theme="light"] .theme-toggle{background:#f4faf6;color:var(--text);border-color:#b7d0c2}
+html[data-theme="light"] .filter-chip.active{background:#b7e6d0;color:#08432c}
+html[data-theme="light"] .filter-chip span{background:#e0f1e8;color:#145639}
+html[data-theme="light"] .filter-chip.active span{background:#9ed9bb;color:#08432c}
+html[data-theme="light"] .btn.alt{color:var(--text);border-color:#98bda8}
+html[data-theme="light"] .badge,html[data-theme="light"] .status{background:#e2f4e9;color:#145b3c;border-color:#a0cab0}
+html[data-theme="light"] .notice{background:#e8f5ec;color:#1d4932;border-color:#a9ceba}
+html[data-theme="light"] .notice.error{background:#ffeae8;color:#882d29;border-color:#dcaba5}
+html[data-theme="light"] .switcher,html[data-theme="light"] .dropzone,html[data-theme="light"] .drop-zone{background:#edf5ef}
+html[data-theme="light"] .switch,html[data-theme="light"] .lead,html[data-theme="light"] .card p{color:#526c60}
+html[data-theme="light"] .switch.active{background:#d2eadc;color:#184c33}
+html[data-theme="light"] .login,html[data-theme="light"] .modal{background:#fff;color:var(--text)}
+html[data-theme="light"] .side{background:#e4f0e8}
+html[data-theme="light"] .side a{color:#275740}
+html[data-theme="light"] .side a.active{background:#c4e5d3;color:#13482e}
+html[data-theme="light"] .iconBtn{color:var(--text)}
+html[data-theme="light"] .reminder-failed,html[data-theme="light"] .status-disputed{background:#ffebe5;color:#953e23}
+html[data-theme="light"] .demoBanner{background:#e3f4e9;color:#23563c}
+.theme-toggle{border:1px solid #315b4c;background:var(--panel);color:var(--text);border-radius:11px;padding:10px 12px;min-height:44px;cursor:pointer}
+.nav-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dashboard-view-switch{display:flex;gap:5px;margin-top:12px;padding:4px;width:max-content;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.dashboard-view-switch button{border:0;background:transparent;color:var(--muted);padding:9px 15px;min-height:40px;border-radius:9px;cursor:pointer}
+.dashboard-view-switch button.active{background:var(--accent);color:#052218;font-weight:750}
+.invoice-list-compact{gap:8px}
+.invoice-list-compact .dashboard-invoice-card{display:grid;grid-template-columns:minmax(165px,2fr) minmax(145px,1.5fr) minmax(140px,1fr) auto;align-items:center;gap:14px;padding:12px 16px;border-radius:12px}
+.invoice-list-compact .invoice-card-head{display:flex;flex-direction:column;gap:4px}
+.invoice-list-compact .invoice-card-head h2{font-size:16px}
+.invoice-list-compact .invoice-amount{font-size:18px}
+.invoice-list-compact .invoice-card-meta{display:grid;gap:3px;font-size:12px}
+.invoice-list-compact .invoice-next{padding:8px}
+.invoice-list-compact .invoice-next strong{font-size:13px}
+.invoice-list-compact .dashboard-invoice-card>.actions{display:grid;gap:6px;margin:0;min-width:140px}
+.invoice-list-compact .dashboard-invoice-card>.actions .badge{margin:0}
+.invoice-list-compact .dashboard-invoice-card>.actions .btn{width:100%;padding:8px}
+.invoice-list-compact .dashboard-invoice-card>.quick-paid{grid-column:4}
+.quick-paid-confirm{padding:12px;border-radius:11px;background:var(--panel2);border:1px solid var(--line)}
+.quick-paid-confirm p{margin:0 0 8px}.quick-paid-confirm .actions{margin:0;gap:6px}
+.quick-paid .btn{font-size:13px}
+.invoice-list-compact .dashboard-invoice-card>.actions .quick-paid{width:100%}
+.billing-panel{max-width:760px;margin:auto}
+@media(max-width:900px){
+ .invoice-list-compact .dashboard-invoice-card{grid-template-columns:minmax(0,1fr) auto}
+ .invoice-list-compact .invoice-card-meta,.invoice-list-compact .invoice-next{grid-column:1/-1}
+ .invoice-list-compact .dashboard-invoice-card>.actions{grid-column:1/-1;display:flex;flex-wrap:wrap}
+}
+@media(max-width:600px){.nav-controls{gap:8px}.theme-toggle{font-size:13px;padding:8px}.invoice-list-compact .dashboard-invoice-card>.actions{display:grid;grid-template-columns:1fr}.quick-paid,.quick-paid>.btn{width:100%}}
