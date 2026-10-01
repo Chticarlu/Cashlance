@@ -1,5 +1,6 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ActivateInvoice from '@/components/activate-invoice'
 
@@ -13,6 +14,7 @@ export type DashboardInvoice = {
   reminder_scenario:string|null
   last_contact_at:string|null
   reminders_stopped_at:string|null
+  import_details:Record<string,unknown>|null
   customers:{name:string;email:string|null}|null
 }
 
@@ -30,10 +32,44 @@ const invoiceLabel=(i:DashboardInvoice)=>{
   return state==='stopped'?'Relances arrêtées':state==='todo'?'À programmer':labels[i.status]||'En relance'
 }
 
+const invoiceDate=(i:DashboardInvoice)=>{
+ const raw=i.import_details?.invoiceDate
+ if(typeof raw!=='string'||!raw.trim())return 'Non renseignée'
+ const v=raw.trim()
+ const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(v)
+ if(m)return `${m[3]}/${m[2]}/${m[1]}`
+ const fr=/^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/.exec(v)
+ return fr?`${fr[1].padStart(2,'0')}/${fr[2].padStart(2,'0')}/${fr[3]}`:'Non renseignée'
+}
+function QuickPaid({id}:{id:string}){
+ const router=useRouter()
+ const [confirm,setConfirm]=useState(false)
+ const [busy,setBusy]=useState(false)
+ const [error,setError]=useState('')
+ async function pay(){
+  if(busy)return
+  setBusy(true);setError('')
+  try{
+   const res=await fetch('/api/invoices/manage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({invoiceId:id,action:'paid'})})
+   if(!res.ok)throw new Error('Impossible de valider le paiement.')
+   setConfirm(false);router.refresh()
+  }catch(e){setError(e instanceof Error?e.message:'Réessayez.')}
+  finally{setBusy(false)}
+ }
+ return <div className="quick-paid">
+  {!confirm?<button type="button" className="btn alt" onClick={()=>setConfirm(true)}>✓ Facture payée</button>
+  :<div className="quick-paid-confirm" role="group" aria-label="Confirmation du paiement"><p>Confirmer le règlement ? Les relances restantes seront annulées.</p><div className="actions"><button type="button" className="btn" disabled={busy} onClick={pay}>{busy?'Enregistrement…':'Confirmer'}</button><button type="button" className="btn alt" disabled={busy} onClick={()=>setConfirm(false)}>Annuler</button></div></div>}
+  {error&&<p className="notice error" role="alert">{error}</p>}
+ </div>
+}
+
 export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoice[]}) {
   const [filter,setFilter]=useState('all')
   const [search,setSearch]=useState('')
   const [sort,setSort]=useState('priority')
+  const [view,setView]=useState<'cards'|'list'>('cards')
+  useEffect(()=>{try{if(localStorage.getItem('cashlance-dashboard-view')==='list')setView('list')}catch{}},[])
+  function changeView(next:'cards'|'list'){setView(next);try{localStorage.setItem('cashlance-dashboard-view',next)}catch{}}
 
   const counts=useMemo(()=>Object.fromEntries(['active','stopped','todo','promised','disputed','paid'].map(key=>[
     key,invoices.filter(i=>invoiceState(i)===key).length
@@ -93,10 +129,11 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
           </select>
         </label>
       </div>
+      <div className="dashboard-view-switch" aria-label="Mode d’affichage"><button type="button" className={view==='cards'?'active':''} aria-pressed={view==='cards'} onClick={()=>changeView('cards')}>▦ Cartes</button><button type="button" className={view==='list'?'active':''} aria-pressed={view==='list'} onClick={()=>changeView('list')}>☷ Liste</button></div>
       <p className="muted filter-result">{visible.length} facture{visible.length>1?'s':''} affichée{visible.length>1?'s':''}</p>
     </section>
 
-    <div className="invoice-list">
+    <div className={view==='list'?'invoice-list invoice-list-compact':'invoice-list'}>
       {visible.map(i=>{
         const days=Math.floor((Date.now()-new Date(i.due_date+'T12:00:00').getTime())/86400000)
         const timing=i.status==='paid'?'Facture réglée':days>0?`${days} j de retard`:days===0?'Échéance aujourd’hui':`Échéance dans ${Math.abs(days)} j`
@@ -104,11 +141,12 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
         const next=state==='paid'?'Facture réglée':state==='disputed'?'Traiter le litige':state==='todo'?'Programmer les relances':state==='active'?'Relances automatiques actives':state==='promised'?'Attendre le paiement promis':'Aucun nouvel envoi automatique'
         return <article className="card dashboard-invoice-card" key={i.id}>
         <div className="invoice-card-head"><div><h2>{i.customers?.name||'Client'}</h2><span className="muted">{i.invoice_number||'Sans numéro'}</span></div><strong className="invoice-amount">{euro(i.amount_cents)}</strong></div>
-        <div className="invoice-card-meta"><span>{timing}</span><span>{i.customers?.email||'Email manquant'}</span></div>
+        <div className="invoice-card-meta"><span>Date facture : {invoiceDate(i)}</span><span>{timing}</span><span>{i.customers?.email||'Email manquant'}</span></div>
         <div className="invoice-next"><small>Prochaine action</small><strong>{next}</strong></div>
         <div className="actions">
           <span className="badge">{invoiceLabel(i)}</span>
           <Link className="btn alt" href={`/invoices/${i.id}`}>Voir la facture</Link>
+          {i.status!=='paid'&&<QuickPaid id={i.id}/>}
         </div>
         {state==='todo'&&i.import_key&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}
       </article>})}
