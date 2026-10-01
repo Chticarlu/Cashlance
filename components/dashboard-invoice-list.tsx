@@ -99,7 +99,7 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
     <div className="invoice-list">
       {visible.map(i=>{
         const days=Math.floor((Date.now()-new Date(i.due_date+'T12:00:00').getTime())/86400000)
-        const timing=days>0?`${days} j de retard`:days===0?'Échéance aujourd’hui':`Échéance dans ${Math.abs(days)} j`
+        const timing=i.status==='paid'?'Facture réglée':days>0?`${days} j de retard`:days===0?'Échéance aujourd’hui':`Échéance dans ${Math.abs(days)} j`
         const state=invoiceState(i)
         const next=state==='paid'?'Facture réglée':state==='disputed'?'Traiter le litige':state==='todo'?'Programmer les relances':state==='active'?'Relances automatiques actives':state==='promised'?'Attendre le paiement promis':'Aucun nouvel envoi automatique'
         return <article className="card dashboard-invoice-card" key={i.id}>
