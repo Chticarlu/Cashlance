@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import InvoiceActions from '@/components/invoice-actions'
 
 type Customer = { name:string; email:string|null } | null
 type Invoice = {
