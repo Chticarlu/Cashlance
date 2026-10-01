@@ -63,17 +63,31 @@ export function draftErrors(row: Draft, schedule: boolean): string[] {
 }
 export const scenarios = {
   gentle: { label: 'Progressif — J+1, J+7, J+15', stages: ['J+1', 'J+7', 'J+15'] },
-  complete: { label: 'Complet — J−3, J+1, J+7, J+15, J+30', stages: ['J-3', 'J+1', 'J+7', 'J+15', 'J+30'] },
+  complete: { label: 'Complet — avant et après échéance (5 relances)', stages: ['J-3', 'J+1', 'J+7', 'J+15', 'J+30'] },
+  custom: { label: 'Personnalisé — choisissez vos délais', stages: [] },
 } as const
 export type Scenario = keyof typeof scenarios
-// One first future message for overdue invoices; never a burst of historic reminders.
-export function previewSchedule(due: string, scenario: Scenario, now = new Date()) {
+// Custom reminders are 1–5 strictly increasing delays, from 1 to 60 days.
+export function validCustomDays(value: unknown): value is number[] {
+  return Array.isArray(value) && value.length >= 1 && value.length <= 5 &&
+    value.every((n, i) => Number.isInteger(n) && n >= 1 && n <= 60 && (i === 0 || n > value[i - 1]))
+}
+export function scenarioPayload(scenario: Scenario, customDays: number[]): string {
+  if (scenario !== 'custom') return scenario
+  if (!validCustomDays(customDays)) throw new Error('Choisissez 1 à 5 délais croissants, entre 1 et 60 jours.')
+  return 'custom:' + customDays.join(',')
+}
+export function previewSchedule(due: string, scenario: Scenario, now = new Date(), customDays: number[] = [1, 7, 15]) {
+  const today = now.toISOString().slice(0, 10)
+  const overdue = due < today
+  const base = overdue ? today : due
+  const offsets = scenario === 'custom' ? (validCustomDays(customDays) ? customDays : []) :
+    scenario === 'complete' ? (overdue ? [1, 4, 10, 18, 33] : [-3, 1, 7, 15, 30]) : [1, 7, 15]
   let last = now.getTime()
-  return scenarios[scenario].stages.map(stage => {
-    const offset = Number(stage.slice(1))
-    const natural = new Date(`${due}T09:00:00Z`).getTime() + offset * 86400000
+  return offsets.map((offset, i) => {
+    const natural = new Date(base + 'T09:00:00Z').getTime() + offset * 86400000
     const at = Math.max(natural, last + 86400000)
     last = at
-    return { stage, at: new Date(at).toISOString() }
+    return { stage: 'J' + (offset > 0 ? '+' : '') + offset, at: new Date(at).toISOString(), sequence: i + 1 }
   })
 }
