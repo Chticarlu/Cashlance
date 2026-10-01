@@ -16,8 +16,8 @@ export function reminderCopy(stage: string, customer: string, amountCents: numbe
     'J+30': `Nous vous recontactons au sujet de la facture${ref} d’un montant de ${amount}, dont l’échéance est dépassée depuis plusieurs semaines.`,
   }
   return {
-    subject: subjectByStage[stage] || `Relance facture${ref}`,
-    text: `Bonjour ${customer},\n\n${intro[stage] || intro['J+7']}\n\nSi le règlement a déjà été effectué, vous pouvez ignorer ce message. Dans le cas contraire, merci de nous indiquer la date de règlement prévue ou toute difficulté concernant cette facture.\n\nCordialement,`,
+    subject: subjectByStage[stage] || `Rappel de règlement — facture${ref}`,
+    text: `Bonjour ${customer},\n\n${intro[stage] || `Nous vous contactons concernant la facture${ref} d’un montant de ${amount}, actuellement indiquée comme non réglée.`}\n\nSi le règlement a déjà été effectué, vous pouvez ignorer ce message. Dans le cas contraire, merci de nous indiquer la date de règlement prévue ou toute difficulté concernant cette facture.\n\nCordialement,`,
   }
 }
 

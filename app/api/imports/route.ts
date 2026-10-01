@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const text = await req.text()
     if (text.length > 2_000_000) throw new Error('Import trop volumineux.')
     const body = JSON.parse(text)
-    if (!uuid(body.batchId) || body.reviewed !== true || !['gentle','complete'].includes(body.scenario) || typeof body.schedule !== 'boolean') throw new Error('Confirmez les informations et le scénario de relance.')
+    if (!uuid(body.batchId) || body.reviewed !== true || !(typeof body.scenario === 'string' && (['gentle','complete'].includes(body.scenario) || /^custom:(?:[1-9]|[1-5][0-9]|60)(?:,(?:[1-9]|[1-5][0-9]|60)){0,4}$/.test(body.scenario) && (() => { const a=body.scenario.slice(7).split(',').map(Number); return a.every((n:number,i:number)=>i===0||n>a[i-1]) })())) || typeof body.schedule !== 'boolean') throw new Error('Confirmez les informations et le scénario de relance.')
     const rows = cleanDrafts(body.rows)
     for (const row of rows) {
       if (!row.confirmed) throw new Error('Chaque créance doit être vérifiée.')
