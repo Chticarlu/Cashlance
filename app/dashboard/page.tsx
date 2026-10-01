@@ -4,14 +4,15 @@ import DemoPanel from '@/components/demo-panel'
 import ActivateInvoice from '@/components/activate-invoice'
 import EmailPreferences from '@/components/email-preferences'
 import { createClient } from '@/lib/supabase/server'
-type Invoice = { id:string; invoice_number:string|null; amount_cents:number; due_date:string; status:string; import_key:string|null; reminder_scenario:string|null; customers:{name:string;email:string|null}|null }
+type Invoice = { id:string; invoice_number:string|null; amount_cents:number; due_date:string; status:string; import_key:string|null; reminder_scenario:string|null; last_contact_at:string|null; customers:{name:string;email:string|null}|null }
 const labels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
 const euro=(cents:number)=>(cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})
+const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(labels[i.status]||i.status)
 export const metadata={title:'Mon tableau de bord — CashLance',robots:{index:false,follow:false}}
 export default async function Dashboard() {
   const db=await createClient(); const {data:{user}}=await db.auth.getUser(); if(!user) redirect('/login')
   const [result,organization,preferences]=await Promise.all([
-    db.from('invoices').select('id,invoice_number,amount_cents,due_date,status,import_key,reminder_scenario,customers(name,email)').neq('status','paid').order('due_date',{ascending:true}),
+    db.from('invoices').select('id,invoice_number,amount_cents,due_date,status,import_key,reminder_scenario,last_contact_at,customers(name,email)').neq('status','paid').order('due_date',{ascending:true}),
     db.from('organizations').select('created_at,subscription_status,stripe_customer_id').eq('owner_id',user.id).maybeSingle(),
     db.from('onboarding_state').select('opted_in').eq('user_id',user.id).maybeSingle(),
   ])
@@ -21,8 +22,8 @@ export default async function Dashboard() {
     <section className="section"><div className="toolbar"><div><h1>Vos créances, vos prochaines actions</h1><p className="muted">Importez, vérifiez, puis programmez vos relances.</p></div><Link className="btn" href="/import">Importer mes documents</Link></div>
     {result.error && <p className="notice error" role="alert">Impossible de charger les créances. Réessayez dans un instant.</p>}
     {!result.error && !invoices.length && <div className="card"><h2>Comment voulez-vous commencer ?</h2><p>Importez vos documents, ou découvrez le fonctionnement avec un exemple sans envoi.</p><DemoPanel /></div>}
-    <div className="kpis kpisDash"><div className="kpi"><small>À encaisser</small><strong>{euro(total)}</strong></div><div className="kpi"><small>Promesses</small><strong>{euro(invoices.filter(i=>i.status==='promised').reduce((n,i)=>n+i.amount_cents,0))}</strong></div><div className="kpi"><small>À vérifier / programmer</small><strong>{invoices.filter(i=>i.status==='disputed'||(i.import_key&&!i.reminder_scenario)).length}</strong></div></div>
-    <div className="invoice-list">{invoices.map(i=><article className="card" key={i.id}><h2>{i.customers?.name||'Client'}</h2><p>{i.invoice_number||'Sans numéro'} · <strong>{euro(i.amount_cents)}</strong></p><p>Échéance : {new Date(i.due_date+'T12:00:00').toLocaleDateString('fr-FR')}<br />Email : {i.customers?.email||'Information manquante'}</p><div className="actions"><span className="badge">{i.import_key&&!i.reminder_scenario?'À programmer':labels[i.status]||i.status}</span><Link className="btn alt" href={`/invoices/${i.id}`}>Voir la facture</Link></div>{i.import_key&&!i.reminder_scenario&&i.status==='open'&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}</article>)}</div>
+    <div className="kpis kpisDash"><div className="kpi"><small>À encaisser</small><strong>{euro(total)}</strong></div><div className="kpi"><small>Promesses</small><strong>{euro(invoices.filter(i=>i.status==='promised').reduce((n,i)=>n+i.amount_cents,0))}</strong></div><div className="kpi"><small>À vérifier / programmer</small><strong>{invoices.filter(i=>i.status==='disputed'||(i.status==='open'&&i.import_key&&!i.reminder_scenario&&!i.last_contact_at)).length}</strong></div></div>
+    <div className="invoice-list">{invoices.map(i=><article className="card" key={i.id}><h2>{i.customers?.name||'Client'}</h2><p>{i.invoice_number||'Sans numéro'} · <strong>{euro(i.amount_cents)}</strong></p><p>Échéance : {new Date(i.due_date+'T12:00:00').toLocaleDateString('fr-FR')}<br />Email : {i.customers?.email||'Information manquante'}</p><div className="actions"><span className="badge">{invoiceLabel(i)}</span><Link className="btn alt" href={`/invoices/${i.id}`}>Voir la facture</Link></div>{i.import_key&&!i.reminder_scenario&&i.status==='open'&&!i.last_contact_at&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}</article>)}</div>
     <p className="muted">Vous pouvez aussi saisir une créance dans l’écran d’import, puis vérifier les informations avant de programmer.</p>
     {organization.data?.stripe_customer_id && <form method="POST" action="/api/stripe/portal"><button className="btn alt">Gérer mon abonnement</button></form>}
     <details><summary>Préférences emails</summary><EmailPreferences initial={preferences.data?.opted_in===true} /></details></section></main>
