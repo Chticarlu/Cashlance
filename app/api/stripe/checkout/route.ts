@@ -36,6 +36,11 @@ export async function POST(req: Request) {
     // Changes to an existing subscription belong in the Portal, never a new trial.
     if (org.stripe_subscription_id && !['canceled', 'cancelled', 'incomplete_expired'].includes(org.subscription_status || '')) return NextResponse.redirect(new URL('/account/billing', getRequestAppUrl(req)), 303)
     const stripe = getStripe()
+    if (org.stripe_subscription_id) {
+      // A delayed cancellation webhook must not create a duplicate subscription.
+      const current = await stripe.subscriptions.retrieve(org.stripe_subscription_id)
+      if (!['canceled', 'incomplete_expired'].includes(current.status)) return NextResponse.redirect(new URL('/account/billing', getRequestAppUrl(req)), 303)
+    }
     let customerId = org.stripe_customer_id as string | null
     if (!customerId) {
       const customer = await stripe.customers.create({
