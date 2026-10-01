@@ -12,6 +12,11 @@ select pg_get_functiondef(p.oid) into definition from pg_proc p join pg_namespac
 where n.nspname='public' and p.proname='activate_imported_invoice_server'
 and pg_get_function_identity_arguments(p.oid)='p_owner uuid, target_invoice uuid, confirmed_email text, chosen_scenario text';
 if definition is null then raise exception 'activation_function_not_found'; end if;
+definition:=replace(definition,chr(13),'');
+old_block:=E'  if inv.reminder_scenario is not null then\\n    return 0;\\n  end if;';
+if position(old_block in definition)=0 then
+  old_block:='if inv.reminder_scenario is not null then return 0; end if;';
+end if;
 if position(old_block in definition)=0 then raise exception 'expected_activation_guard_missing'; end if;
 execute replace(definition,old_block,new_block);
 end $guard$;
