@@ -107,7 +107,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         {invoice.paid_at&&<p>Marquée payée le : <strong>{dateTime(invoice.paid_at)}</strong></p>}
       </article>}
 
-      <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} />
+      <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} hasContact={Boolean(invoice.last_contact_at)} />
 
       <div className="detail-columns">
         <section>
