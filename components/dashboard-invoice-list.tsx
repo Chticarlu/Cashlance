@@ -35,7 +35,7 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
   const [search,setSearch]=useState('')
   const [sort,setSort]=useState('priority')
 
-  const counts=useMemo(()=>Object.fromEntries(['active','stopped','todo','promised','disputed'].map(key=>[
+  const counts=useMemo(()=>Object.fromEntries(['active','stopped','todo','promised','disputed','paid'].map(key=>[
     key,invoices.filter(i=>invoiceState(i)===key).length
   ])),[invoices])
 
@@ -76,6 +76,7 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
           ['todo','À programmer',counts.todo],
           ['promised','Promesses',counts.promised],
           ['disputed','Litiges',counts.disputed],
+          ['paid','Payées',counts.paid],
         ].map(([value,label,count])=><button
           key={String(value)}
           type="button"
@@ -100,7 +101,7 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
         const days=Math.floor((Date.now()-new Date(i.due_date+'T12:00:00').getTime())/86400000)
         const timing=days>0?`${days} j de retard`:days===0?'Échéance aujourd’hui':`Échéance dans ${Math.abs(days)} j`
         const state=invoiceState(i)
-        const next=state==='disputed'?'Traiter le litige':state==='todo'?'Programmer les relances':state==='active'?'Relances automatiques actives':state==='promised'?'Attendre le paiement promis':'Aucun nouvel envoi automatique'
+        const next=state==='paid'?'Facture réglée':state==='disputed'?'Traiter le litige':state==='todo'?'Programmer les relances':state==='active'?'Relances automatiques actives':state==='promised'?'Attendre le paiement promis':'Aucun nouvel envoi automatique'
         return <article className="card dashboard-invoice-card" key={i.id}>
         <div className="invoice-card-head"><div><h2>{i.customers?.name||'Client'}</h2><span className="muted">{i.invoice_number||'Sans numéro'}</span></div><strong className="invoice-amount">{euro(i.amount_cents)}</strong></div>
         <div className="invoice-card-meta"><span>{timing}</span><span>{i.customers?.email||'Email manquant'}</span></div>
