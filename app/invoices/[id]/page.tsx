@@ -5,10 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import InvoiceActions from '@/components/invoice-actions'
 import InvoiceEdit from '@/components/invoice-edit'
 import ThemeToggle from '@/components/theme-toggle'
+import ReminderPlanner from '@/components/reminder-planner'
 
 type Customer = { name:string; email:string|null } | null
 type Invoice = {
   id:string
+  import_key:string|null
   invoice_number:string|null
   amount_cents:number
   due_date:string
@@ -46,7 +48,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   await requireSubscription(db, user.id)
 
   const invoiceResult=await db.from('invoices')
-    .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,import_details,created_at,customers(name,email)')
+    .select('id,import_key,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,import_details,created_at,customers(name,email)')
     .eq('id',id).maybeSingle()
   if(invoiceResult.error||!invoiceResult.data) notFound()
   const invoice=invoiceResult.data as unknown as Invoice
@@ -116,6 +118,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
       <InvoiceEdit initial={{id:invoice.id,issuer:typeof invoice.import_details?.issuer==='string'?invoice.import_details.issuer:'',client:invoice.customers?.name||'',email:invoice.customers?.email||'',invoiceNumber:invoice.invoice_number||'',amountCents:invoice.amount_cents,dueDate:invoice.due_date,locked:invoice.status!=='open'||Boolean(invoice.reminder_scenario||invoice.reminders_stopped_at||invoice.last_contact_at)||reminders.length>0||outbound.length>0||inbound.length>0}} />
 
       <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} hasContact={Boolean(invoice.reminders_stopped_at||invoice.last_contact_at)} />
+      {invoice.status==='open' && invoice.import_key && !invoice.reminder_scenario && !invoice.reminders_stopped_at && !invoice.last_contact_at && reminders.length===0 && <ReminderPlanner invoiceId={invoice.id} due={invoice.due_date} initialEmail={invoice.customers?.email||''} />}
 
       <div className="detail-columns">
         <section>
