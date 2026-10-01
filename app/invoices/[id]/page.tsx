@@ -54,6 +54,23 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   const reminders=(reminderResult.data||[]) as Reminder[]
   const outbound=(outboundResult.data||[]) as Outbound[]
   const inbound=(inboundResult.data||[]) as Inbound[]
+  const pendingReminders=reminders.filter(r=>r.state==='pending')
+  const sentReminders=reminders.filter(r=>r.state==='sent').length
+  const cancelledReminders=reminders.filter(r=>r.state==='cancelled').length
+  const nextReminder=pendingReminders[0]||null
+  const reviewCount=inbound.filter(m=>m.needs_review).length
+  const nextAction=invoice.status==='paid'
+    ? 'Aucune action — facture payée'
+    : invoice.status==='disputed'
+      ? 'Traiter le litige'
+      : invoice.status==='promised'&&invoice.promise_date
+        ? `Attendre le paiement promis le ${date(invoice.promise_date)}`
+        : invoice.status==='open'&&!invoice.reminder_scenario&&invoice.last_contact_at
+          ? 'Relances arrêtées'
+          : nextReminder
+            ? `Prochaine relance ${nextReminder.stage} le ${dateTime(nextReminder.scheduled_for)}`
+            : 'Programmer les relances'
+
   const timeline=[
     ...outbound.map(m=>({id:'out-'+m.id,kind:'out' as const,at:m.sent_at||m.created_at,title:m.subject,body:m.body_text,meta:m.state==='sent'?'Email envoyé':m.state})),
     ...inbound.map(m=>({id:'in-'+m.id,kind:'in' as const,at:m.created_at,title:m.subject||'Réponse reçue',body:m.body_text||'',meta:replyLabels[m.classification]||m.classification,review:m.needs_review})),
@@ -70,6 +87,19 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         <article className="card"><small className="muted">Suivi</small><h2>{followLabel(invoice)}</h2><p>Dernier contact : {dateTime(invoice.last_contact_at)}</p></article>
       </div>
 
+      <section className="invoice-overview">
+        <div className="overview-main">
+          <span className="muted">Prochaine action</span>
+          <strong>{nextAction}</strong>
+        </div>
+        <div className="overview-stats">
+          <div><span>Envoyées</span><strong>{sentReminders}</strong></div>
+          <div><span>À venir</span><strong>{pendingReminders.length}</strong></div>
+          <div><span>Réponses</span><strong>{inbound.length}</strong></div>
+          <div><span>À vérifier</span><strong>{reviewCount}</strong></div>
+        </div>
+      </section>
+
       {(invoice.promise_date||invoice.dispute_reason||invoice.paid_at)&&<article className="card detail-note">
         <h2>État de la créance</h2>
         {invoice.promise_date&&<p>Promesse de paiement : <strong>{date(invoice.promise_date)}</strong></p>}
@@ -83,7 +113,8 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         <section>
           <h2>Planning des relances</h2>
           <div className="card">
-            {reminders.length?reminders.map(r=><div className="row" key={r.id}><div><strong>{r.stage}</strong><div className="muted">{dateTime(r.scheduled_for)}</div></div><span className="status">{reminderLabels[r.state]||r.state}</span></div>):<p className="muted">Aucune relance programmée pour cette facture.</p>}
+            {reminders.length?reminders.map(r=><div className="row reminder-row" key={r.id}><div><strong>{r.stage}</strong><div className="muted">{dateTime(r.scheduled_for)}</div></div><span className={`status reminder-${r.state}`}>{reminderLabels[r.state]||r.state}</span></div>):<p className="muted">Aucune relance programmée pour cette facture.</p>}
+            {cancelledReminders>0&&<p className="muted reminder-summary">{cancelledReminders} relance{cancelledReminders>1?'s':''} annulée{cancelledReminders>1?'s':''}.</p>}
           </div>
         </section>
 
@@ -92,7 +123,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
           <div className="timeline">
             {timeline.length?timeline.map(item=><article className="card timeline-item" key={item.id}>
               <div className="timeline-head"><strong>{item.kind==='out'?'↗ Envoyé':'↙ Reçu'} · {item.title}</strong><span className="muted">{dateTime(item.at)}</span></div>
-              <p>{item.meta}{'review' in item&&item.review?' · Vérification nécessaire':''}</p>
+              <div className="timeline-meta"><span className={item.kind==='out'?'status':'status status-inbound'}>{item.meta}</span>{'review' in item&&item.review&&<span className="status status-review">Vérification nécessaire</span>}</div>
               {item.body&&<details><summary>Voir le message</summary><pre className="message-body">{item.body}</pre></details>}
             </article>):<div className="card"><p className="muted">Aucun échange enregistré pour cette facture.</p></div>}
           </div>
