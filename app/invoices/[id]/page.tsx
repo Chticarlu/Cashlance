@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import InvoiceActions from '@/components/invoice-actions'
 import InvoiceEdit from '@/components/invoice-edit'
+import ThemeToggle from '@/components/theme-toggle'
 
 type Customer = { name:string; email:string|null } | null
 type Invoice = {
@@ -80,7 +81,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   ].sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
 
   return <main className="wrap">
-    <nav className="nav"><Link className="brand" href="/">Cash<b>lance</b></Link><Link href="/dashboard">← Tableau de bord</Link></nav>
+    <nav className="nav"><Link className="brand" href="/">Cash<b>lance</b></Link><div className="nav-controls"><ThemeToggle/><Link href="/dashboard">← Tableau de bord</Link></div></nav>
     <section className="section">
       <div className="toolbar"><div><span className="ecosystem">Facture</span><h1>{invoice.invoice_number||'Sans numéro'}</h1><p className="muted">{invoice.customers?.name||'Client'}</p></div><span className="badge">{invoiceLabel(invoice)}</span></div>
 
