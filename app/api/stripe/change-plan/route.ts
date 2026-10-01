@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server'
 import {getAppUrl} from '@/lib/app-url'
 import {createClient} from '@/lib/supabase/server'
 import {createAdminClient} from '@/lib/supabase/admin'
-import {getStripe,getStripePriceId} from '@/lib/stripe'
+import {getStripe} from '@/lib/stripe'
 import {sameOrigin} from '@/lib/imports/server'
 
 export async function POST(req:Request){
@@ -26,9 +26,7 @@ export async function POST(req:Request){
     ||sub.items.data.length!==1||sub.cancel_at_period_end) return back('unavailable')
   const portal=await stripe.billingPortal.configurations.list({is_default:true,limit:1})
   const configuration=portal.data[0]
-  const configuredPrices=new Set((configuration?.features.subscription_update.products||[]).flatMap(p=>p.prices||[]))
-  const allPrices=[getStripePriceId('solo'),getStripePriceId('pro'),getStripePriceId('team')]
-  if(!configuration?.features.subscription_update.enabled||!allPrices.every(id=>configuredPrices.has(id)))
+  if(!configuration?.features.subscription_update.enabled)
    return back('configuration')
   const session=await stripe.billingPortal.sessions.create({
    customer:org.stripe_customer_id,
