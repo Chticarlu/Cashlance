@@ -67,3 +67,5 @@ html[data-theme="light"] .demoBanner{background:#e3f4e9;color:#23563c}
  .invoice-list-compact .dashboard-invoice-card>.actions{grid-column:1/-1;display:flex;flex-wrap:wrap}
 }
 @media(max-width:600px){.nav-controls{gap:8px}.theme-toggle{font-size:13px;padding:8px}.invoice-list-compact .dashboard-invoice-card>.actions{display:grid;grid-template-columns:1fr}.quick-paid,.quick-paid>.btn{width:100%}}
+
+.billing-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:18px 0}.billing-actions form{margin:0}@media(max-width:600px){.billing-actions{display:grid;grid-template-columns:1fr}.billing-actions .btn{width:100%}}
