@@ -1,3 +1,4 @@
+import { hasSubscription } from '@/lib/subscription'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
 import {createClient} from '@/lib/supabase/server'
@@ -20,11 +21,12 @@ export default async function BillingPage({searchParams}:{searchParams:Promise<{
    <div className="card">
     <p>Formule : <strong>{names[String(org?.plan||'')]||String(org?.plan||'Non renseignée')}</strong></p>
     <p>Statut : <strong>{statusLabel[status]||status}</strong></p>
-    {billingError&&<p role="alert" className="notice error">{billingError==='scheduled_cancellation'?'Cet abonnement est programmé pour être résilié à la fin de l’essai ou de la période. Ouvrez « Gérer mon abonnement » dans Stripe et, si vous souhaitez conserver le service, annulez la résiliation programmée avant de changer de formule.':billingError==='configuration'?'Le changement de formule doit être activé dans le portail Stripe (Solo, Pro et Équipe).':billingError==='unavailable'?'Le changement de formule n’est pas disponible pour cet abonnement.':'Impossible d’ouvrir le portail Stripe pour le moment.'}</p>}
+    {billingError&&<p role="alert" className="notice error">{billingError==='sync'?'La synchronisation Stripe n’a pas abouti. Réessayez le retour du paiement ou contactez le support ; aucun accès payant n’a été accordé.':billingError==='scheduled_cancellation'?'Cet abonnement est programmé pour être résilié à la fin de l’essai ou de la période. Ouvrez « Gérer mon abonnement » dans Stripe et, si vous souhaitez conserver le service, annulez la résiliation programmée avant de changer de formule.':billingError==='configuration'?'Le changement de formule doit être activé dans le portail Stripe (Solo, Pro et Équipe).':billingError==='unavailable'?'Le changement de formule n’est pas disponible pour cet abonnement.':'Impossible d’ouvrir le portail Stripe pour le moment.'}</p>}
     {org?.stripe_customer_id?<div className="billing-actions"><form action="/api/stripe/portal" method="post"><button className="btn alt" type="submit">Gérer mon abonnement</button></form>
     {org.stripe_subscription_id&&['active','trialing'].includes(status)&&<form action="/api/stripe/change-plan" method="post"><button className="btn" type="submit">Changer de formule</button></form>}</div>
      :<><p className="muted">Aucun espace de facturation Stripe n’est encore associé à ce compte.</p><Link href="/pricing" className="btn alt">Découvrir les offres</Link></>}
    </div>
+   {!hasSubscription(org) && <Link href="/pricing" className="btn alt">Choisir une offre</Link>}
    <p className="muted">Passez de Solo à Pro ou Équipe, ou revenez vers une formule plus petite. Stripe indique les éventuels ajustements de facturation avant confirmation. Le portail sécurisé permet aussi de retrouver vos factures, vos moyens de paiement et les options de résiliation disponibles.</p>
   </section>
  </main>

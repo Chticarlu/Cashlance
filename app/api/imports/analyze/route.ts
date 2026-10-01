@@ -1,3 +1,4 @@
+import { subscriptionApiError } from '@/lib/subscription-server'
 import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -40,6 +41,8 @@ export async function POST(req:Request) {
     const db=await createClient(); const {data:{user},error}=await db.auth.getUser()
     if(error||!user||user.is_anonymous) return json({error:'Connectez-vous pour analyser vos documents.'},401)
     if(!user.email_confirmed_at) return json({error:'Confirmez votre adresse email avant l’analyse.'},403)
+    const denied = await subscriptionApiError(db, user.id)
+    if (denied) return denied
     if(!process.env.OPENAI_API_KEY) return json({error:'L’analyse automatique n’est pas configurée. La saisie manuelle reste disponible.'},503)
     const {bytes,name}=await readDocument(req)
     owner=user.id; admin=createAdminClient()

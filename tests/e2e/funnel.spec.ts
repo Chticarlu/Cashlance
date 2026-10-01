@@ -8,7 +8,10 @@ async function signup(page:Page){
   await page.getByPlaceholder('vous@entreprise.fr').fill('test@example.invalid')
   await page.getByPlaceholder('8 caractères minimum').fill('local-test-password')
   await page.getByRole('button',{name:'Commencer mes 14 jours gratuits'}).click()
-  await expect(page.getByRole('heading',{name:'Comment voulez-vous découvrir CashLance ?'})).toBeVisible({timeout:15000})
+  await expect(page).toHaveURL(/\/pricing$/,{timeout:15000})
+  await page.request.post('http://127.0.0.1:54440/subscription',{data:{status:'trialing'}})
+  await page.goto('/dashboard')
+  await expect(page.getByRole('heading',{name:'Vos créances, vos prochaines actions'})).toBeVisible()
 }
 async function noOverflow(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)}
 

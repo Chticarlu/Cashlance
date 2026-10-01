@@ -22,6 +22,13 @@ globalThis.fetch=async(input,init)=>{
     if(name==='missing-due.pdf')data.due=null
     return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(data)}]}]})
   }
+  if(new URL(url).hostname==='api.stripe.com') {
+    const p=new URL(url).pathname
+    if(p==='/v1/checkout/sessions'&&init?.method==='POST') return Response.json({id:'cs_test',url:'http://127.0.0.1:3027/billing/return?session_id=cs_test'})
+    if(p==='/v1/checkout/sessions/cs_test') return Response.json({id:'cs_test',mode:'subscription',status:'complete',customer:'cus_test',subscription:'sub_test',client_reference_id:org.id,metadata:{organization_id:org.id}})
+    if(p==='/v1/subscriptions/sub_test') return Response.json({id:'sub_test',customer:'cus_test',created:123,status:'trialing',metadata:{organization_id:org.id,plan:'pro'},items:{data:[]}})
+    throw Error('Unknown synthetic Stripe operation')
+  }
   if(!['127.0.0.1','localhost'].includes(new URL(url).hostname)) throw new Error('External network forbidden in E2E')
   return nativeFetch(input,init)
 }
@@ -36,14 +43,16 @@ const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1:54440');let raw='';for await(const c of req)raw+=c;const body=raw?JSON.parse(raw):null
   const send=data=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))}
   if(url.pathname==='/reset'){reset();return send({ok:true})}
+  if(url.pathname==='/subscription') {org={...org,subscription_status:body.status||'trialing',stripe_subscription_id:body.subscription===null?null:'sub_test',stripe_customer_id:'cus_test'};return send({ok:true})}
   if(url.pathname==='/shutdown'){send({ok:true});setTimeout(()=>process.exit(0),100);return}
-  if(url.pathname==='/inspect')return send({invoices,events,draft,state,metadata:user.user_metadata,openaiCalls})
+  if(url.pathname==='/inspect')return send({org,invoices,events,draft,state,metadata:user.user_metadata,openaiCalls})
   if(url.pathname.startsWith('/auth/v1/')){
     if(url.pathname.endsWith('/user'))return send(user)
     if(body?.data)user.user_metadata=body.data
     return send({access_token:token(),refresh_token:'local-only',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user})
   }
   const table=url.pathname.split('/').pop()
+  if(table==='sync_stripe_subscription') {org={...org,subscription_status:body.p_status,stripe_subscription_id:body.p_subscription};return send(org)}
   if(table==='manage_invoice_server'){
     const inv=invoices.find(i=>i.id===body.target_invoice)
     if(inv&&body.action==='paid')inv.status='paid'
@@ -62,7 +71,7 @@ const server=createServer(async(req,res)=>{
   }
   if(table==='activate_imported_invoice_server'){const inv=invoices.find(i=>i.id===body.target_invoice);if(inv){inv.reminder_scenario=body.chosen_scenario;inv.customers.email=body.confirmed_email}return send(3)}
   if(req.method==='POST'||req.method==='PATCH'){
-    if(table==='organizations')org ||= {id:'33333333-3333-4333-8333-333333333333',created_at:new Date().toISOString(),subscription_status:'trialing',stripe_customer_id:null,...body}
+    if(table==='organizations')org ||= {id:'33333333-3333-4333-8333-333333333333',created_at:new Date().toISOString(),subscription_status:'cancelled',stripe_customer_id:'cus_test',stripe_subscription_id:null,...body}
     if(table==='onboarding_state')state={...state,...body}
     if(table==='funnel_events')events.push(body)
     if(table==='import_drafts')draft={...body}
@@ -75,7 +84,7 @@ const server=createServer(async(req,res)=>{
   send(data)
 })
 server.listen(54440,'127.0.0.1')
-Object.assign(process.env,{NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:54440',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'local-test-publishable',NEXT_PUBLIC_APP_URL:'http://127.0.0.1:3027',SUPABASE_SECRET_KEY:'local-test-service',STRIPE_SECRET_KEY:'',RESEND_API_KEY:'',OPENAI_API_KEY:'fake-local-test-only',CASHLANCE_ONBOARDING_EMAILS:'false',NEXT_TELEMETRY_DISABLED:'1'})
+Object.assign(process.env,{NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:54440',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'local-test-publishable',NEXT_PUBLIC_APP_URL:'http://127.0.0.1:3027',SUPABASE_SECRET_KEY:'local-test-service',STRIPE_SECRET_KEY:'sk_test_local_only',STRIPE_PRICE_PRO:'price_test',RESEND_API_KEY:'',OPENAI_API_KEY:'fake-local-test-only',CASHLANCE_ONBOARDING_EMAILS:'false',NEXT_TELEMETRY_DISABLED:'1'})
 const next=(await import('next')).default
 const app=next({dev:true,hostname:'127.0.0.1',port:3027});await app.prepare()
 const appServer=createServer(app.getRequestHandler());appServer.listen(3027,'127.0.0.1')

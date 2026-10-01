@@ -1,7 +1,7 @@
 import { beforeEach,it,expect,vi } from 'vitest'
 import {emptyDraft} from '../lib/imports/model'
 const mocks=vi.hoisted(()=>({rpc:vi.fn(),user:{id:'user-test'} as {id:string}|null}))
-vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({auth:{getUser:async()=>({data:{user:mocks.user}})},rpc:mocks.rpc})}))
+vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({auth:{getUser:async()=>({data:{user:mocks.user}})},rpc:mocks.rpc,from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{subscription_status:'active',stripe_subscription_id:'sub_test'},error:null})})})})})}))
 vi.mock('@/lib/supabase/admin',()=>({createAdminClient:()=>({rpc:mocks.rpc})}))
 import {POST} from '../app/api/imports/route'
 const payload=()=>({batchId:crypto.randomUUID(),reviewed:true,schedule:true,scenario:'gentle',rows:[{...emptyDraft(),client:'Client',email:'test@example.invalid',invoiceNumber:'FA-1',amount:'1280,00',due:'2026-09-30',currency:'EUR',confirmed:true}]})

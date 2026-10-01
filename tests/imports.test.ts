@@ -70,7 +70,7 @@ describe('review and schedule guards',()=>{
 describe('trial and useful emails',()=>{
   const now=new Date('2026-09-30T12:00:00Z'),org={created_at:'2026-09-17T12:00:00Z',subscription_status:'trialing',stripe_subscription_id:null}
   it('stops imported reminders after free trial without changing Stripe trials',()=>{
-    expect(canSendImportedReminder(org,now.getTime())).toBe(true)
+    expect(canSendImportedReminder(org,now.getTime())).toBe(false)
     expect(canSendImportedReminder({...org,created_at:'2026-09-01'},now.getTime())).toBe(false)
     expect(canSendImportedReminder({...org,created_at:'2026-09-01',stripe_subscription_id:'sub_test'},now.getTime())).toBe(true)
     expect(canSendImportedReminder({...org,subscription_status:'cancelled'},now.getTime())).toBe(false)

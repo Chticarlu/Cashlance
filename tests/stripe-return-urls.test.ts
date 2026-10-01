@@ -19,13 +19,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 it('builds Checkout returns on cashlance.fretixo.fr independently of request Host', async () => {
   const form = new FormData(); form.set('plan', 'pro')
-  const result = await checkout(new Request('https://untrusted.example/api/stripe/checkout', { method: 'POST', body: form }))
+  const result = await checkout(new Request('https://untrusted.example/api/stripe/checkout', { method: 'POST', headers:{origin:'https://cashlance.fretixo.fr'}, body: form }))
   expect(result.status).toBe(303)
   expect(mocks.checkout).toHaveBeenCalledWith(expect.objectContaining({
-    success_url: 'https://cashlance.fretixo.fr/dashboard?billing=success',
+    success_url: 'https://cashlance.fretixo.fr/billing/return?session_id={CHECKOUT_SESSION_ID}',
     cancel_url: 'https://cashlance.fretixo.fr/pricing?billing=cancelled',
     automatic_tax: { enabled: false },
-  }))
+  }), expect.objectContaining({idempotencyKey:expect.any(String)}))
 })
 it('builds Customer Portal return on cashlance.fretixo.fr', async () => {
   expect((await portal(new Request('https://cashlance.fretixo.fr/api/stripe/portal', { method: 'POST', headers: { origin: 'https://cashlance.fretixo.fr' } }))).status).toBe(303)
@@ -33,20 +33,20 @@ it('builds Customer Portal return on cashlance.fretixo.fr', async () => {
 })
 it('rejects inherited plan keys', async () => {
   const form = new FormData(); form.set('plan', 'constructor')
-  expect((await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout', { method: 'POST', body: form }))).status).toBe(400)
+  expect((await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout', { method: 'POST', headers:{origin:'https://cashlance.fretixo.fr'}, body: form }))).status).toBe(400)
   expect(mocks.checkout).not.toHaveBeenCalled()
 })
 
 it('prevents a second Checkout for an existing subscription',async()=>{
   mocks.org.stripe_subscription_id='sub_test';mocks.org.subscription_status='trialing'
   const form=new FormData();form.set('plan','pro')
-  const result=await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout',{method:'POST',body:form}))
+  const result=await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout',{method:'POST',headers:{origin:'https://cashlance.fretixo.fr'},body:form}))
   expect(result.headers.get('location')).toBe('https://cashlance.fretixo.fr/account/billing')
   expect(mocks.checkout).not.toHaveBeenCalled()
 })
 it('allows a former subscriber to return without a new trial',async()=>{
   mocks.org.stripe_subscription_id='sub_old';mocks.org.subscription_status='canceled'
   const form=new FormData();form.set('plan','pro')
-  await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout',{method:'POST',body:form}))
+  await checkout(new Request('https://cashlance.fretixo.fr/api/stripe/checkout',{method:'POST',headers:{origin:'https://cashlance.fretixo.fr'},body:form}))
   expect(mocks.checkout.mock.calls[0][0].subscription_data).not.toHaveProperty('trial_period_days')
 })
