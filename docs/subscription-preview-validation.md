@@ -20,3 +20,5 @@ Cette branche ne modifie pas la Production. La migration `subscription_funnel` d
 Les tests unitaires bloquent le réseau. Les tests SQL utilisent PostgreSQL embarqué. Les tests navigateur utilisent localhost, des utilisateurs fictifs et des fournisseurs simulés ; toute autre sortie réseau est refusée. Ils ne déclenchent aucun email, paiement ou cron réel.
 
 Ne jamais utiliser une carte réelle sur la Preview et ne pas appeler `/api/cron/reminders`. Le cron est désactivé en Preview. La fusion et la migration Production restent à valider après les résultats Preview.
+
+Un endpoint Stripe Test dédié à cette branche a été préparé pour les événements Checkout, abonnement et facture. Son secret de signature est limité à la branche Preview ; les autres environnements ne sont pas modifiés. L’endpoint et le compte fictif peuvent être supprimés après la validation.
