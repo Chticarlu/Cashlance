@@ -2,6 +2,7 @@ import { beforeEach,it,expect,vi } from 'vitest'
 import {emptyDraft} from '../lib/imports/model'
 const mocks=vi.hoisted(()=>({rpc:vi.fn(),user:{id:'user-test'} as {id:string}|null}))
 vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({auth:{getUser:async()=>({data:{user:mocks.user}})},rpc:mocks.rpc})}))
+vi.mock('@/lib/supabase/admin',()=>({createAdminClient:()=>({rpc:mocks.rpc})}))
 import {POST} from '../app/api/imports/route'
 const payload=()=>({batchId:crypto.randomUUID(),reviewed:true,schedule:true,scenario:'gentle',rows:[{...emptyDraft(),client:'Client',email:'test@example.invalid',invoiceNumber:'FA-1',amount:'1280,00',due:'2026-09-30',currency:'EUR',confirmed:true}]})
 const req=(body:unknown,origin='https://cashlance.fretixo.fr')=>new Request('https://cashlance.fretixo.fr/api/imports',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)})
@@ -21,7 +22,7 @@ it('rejects malformed customer email domains before the import RPC',async()=>{
 })
 it('uses one atomic RPC with normalized amount/date and no client-supplied owner',async()=>{
   const body=payload();expect((await POST(req({...body,organization_id:'foreign'}))).status).toBe(200)
-  expect(mocks.rpc).toHaveBeenCalledWith('confirm_import',expect.objectContaining({rows:[expect.objectContaining({amount_cents:128000,due:'2026-09-30',confirmed:true})]}))
+  expect(mocks.rpc).toHaveBeenCalledWith('confirm_import_server',expect.objectContaining({p_owner:'user-test',rows:[expect.objectContaining({amount_cents:128000,due:'2026-09-30',confirmed:true})]}))
   expect(mocks.rpc.mock.calls[0][1]).not.toHaveProperty('organization_id')
 })
 it('sanitizes database errors',async()=>{

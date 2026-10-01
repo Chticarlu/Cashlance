@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server'
-import {getAppUrl} from '@/lib/app-url'
+import {getBillingAppUrl} from '@/lib/app-url'
 import {createClient} from '@/lib/supabase/server'
 import {createAdminClient} from '@/lib/supabase/admin'
 import {getStripe} from '@/lib/stripe'
@@ -8,9 +8,7 @@ import {sameOrigin} from '@/lib/imports/server'
 export async function POST(req:Request){
  if(!sameOrigin(req)) return new NextResponse(null,{status:403})
  // Preview must return to the actual deployment, never to a stale NEXT_PUBLIC_APP_URL.
- const requestOrigin=new URL(req.url).origin
- const origin=req.headers.get('origin')
- const appUrl=process.env.VERCEL_ENV==='preview' ? (origin===requestOrigin?origin:requestOrigin) : getAppUrl()
+ const appUrl=getBillingAppUrl(req)
  const back=(error:string)=>NextResponse.redirect(new URL('/account/billing?error='+encodeURIComponent(error),appUrl),303)
  const db=await createClient()
  const {data:{user}}=await db.auth.getUser()

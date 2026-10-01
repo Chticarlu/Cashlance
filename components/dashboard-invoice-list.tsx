@@ -36,9 +36,9 @@ const invoiceDate=(i:DashboardInvoice)=>{
  const raw=i.import_details?.invoiceDate
  if(typeof raw!=='string'||!raw.trim())return 'Non renseignée'
  const v=raw.trim()
- const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(v)
+ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
  if(m)return `${m[3]}/${m[2]}/${m[1]}`
- const fr=/^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/.exec(v)
+ const fr=/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/.exec(v)
  return fr?`${fr[1].padStart(2,'0')}/${fr[2].padStart(2,'0')}/${fr[3]}`:'Non renseignée'
 }
 function QuickPaid({id}:{id:string}){

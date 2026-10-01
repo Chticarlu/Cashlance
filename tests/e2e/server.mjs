@@ -44,18 +44,23 @@ const server=createServer(async(req,res)=>{
     return send({access_token:token(),refresh_token:'local-only',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user})
   }
   const table=url.pathname.split('/').pop()
+  if(table==='manage_invoice_server'){
+    const inv=invoices.find(i=>i.id===body.target_invoice)
+    if(inv&&body.action==='paid')inv.status='paid'
+    return send({ok:true,action:body.action})
+  }
   if(table==='reserve_import_analysis') {
     const cached=analyses.find(a=>a.hash===body.p_hash&&a.status==='completed')
     if(cached)return send({status:'cached',result:cached.result})
     const a={id:crypto.randomUUID(),hash:body.p_hash,status:'pending'};analyses.push(a);return send({status:'new',id:a.id})
   }
   if(table==='import_analyses'&&req.method==='PATCH') {Object.assign(analyses.find(a=>'eq.'+a.id===url.searchParams.get('id')),body);return send(null)}
-  if(table==='confirm_import'){
+  if(table==='confirm_import_server'){
     if(!body.rows.every(r=>r.confirmed&&r.currency==='EUR')){res.statusCode=400;return send({message:'review_required'})}
-    for(const r of body.rows)invoices.push({id:crypto.randomUUID(),invoice_number:r.invoiceNumber,amount_cents:r.amount_cents,due_date:r.due,status:'open',import_key:r.invoiceNumber,reminder_scenario:body.schedule?body.scenario:null,customers:{name:r.client,email:r.email}})
+    for(const r of body.rows)invoices.push({id:crypto.randomUUID(),invoice_number:r.invoiceNumber,amount_cents:r.amount_cents,due_date:r.due,status:'open',import_key:r.invoiceNumber,import_details:r.details,reminder_scenario:body.schedule?body.scenario:null,customers:{name:r.client,email:r.email}})
     draft=null;state={...state,stage:body.schedule?'scheduled':'draft'};return send({created:body.rows.length,duplicates:0,scheduled:body.schedule?body.rows.length*3:0})
   }
-  if(table==='activate_imported_invoice'){const inv=invoices.find(i=>i.id===body.target_invoice);if(inv){inv.reminder_scenario=body.chosen_scenario;inv.customers.email=body.confirmed_email}return send(3)}
+  if(table==='activate_imported_invoice_server'){const inv=invoices.find(i=>i.id===body.target_invoice);if(inv){inv.reminder_scenario=body.chosen_scenario;inv.customers.email=body.confirmed_email}return send(3)}
   if(req.method==='POST'||req.method==='PATCH'){
     if(table==='organizations')org ||= {id:'33333333-3333-4333-8333-333333333333',created_at:new Date().toISOString(),subscription_status:'trialing',stripe_customer_id:null,...body}
     if(table==='onboarding_state')state={...state,...body}

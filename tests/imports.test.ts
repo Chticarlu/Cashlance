@@ -58,7 +58,7 @@ describe('review and schedule guards',()=>{
   it.each(['31/02/2026','2026-13-01','09/10/26',''])('rejects invalid date %s',s=>expect(dateISO(s)).toBe(''))
   it('requires an email only to schedule, still requires other essential fields',()=>{
     const row={...emptyDraft(),client:'Demo',invoiceNumber:'TEST-1',due:'2026-10-01',amount:'12',currency:'EUR'}
-    expect(draftErrors(row,false)).toEqual([]);expect(draftErrors(row,true)).toContain('Email requis pour les relances')
+    expect(draftErrors(row,false)).toEqual([]);expect(draftErrors(row,true)).toContain('Email client invalide ou manquant')
   })
   it('never schedules overdue reminders in a burst or immediately',()=>{
     const now=new Date('2026-09-30T12:00:00Z');const dates=previewSchedule('2025-01-01','complete',now).map(x=>Date.parse(x.at))

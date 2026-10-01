@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const admin = createAdminClient()
     let { data: org, error } = await admin
       .from('organizations')
-      .select('id,name,stripe_customer_id,subscription_status')
+      .select('id,name,stripe_customer_id,stripe_subscription_id,subscription_status')
       .eq('owner_id', user.id)
       .maybeSingle()
 
@@ -26,11 +26,13 @@ export async function POST(req: Request) {
       const created = await admin.from('organizations').insert({
         owner_id: user.id,
         name: user.email?.split('@')[0] || 'Mon entreprise',
-      }).select('id,name,stripe_customer_id,subscription_status').single()
+      }).select('id,name,stripe_customer_id,stripe_subscription_id,subscription_status').single()
       if (created.error) throw created.error
       org = created.data
     }
 
+    // Changes to an existing subscription belong in the Portal, never a new trial.
+    if (org.stripe_subscription_id && !['canceled', 'incomplete_expired'].includes(org.subscription_status || '')) return NextResponse.redirect(new URL('/account/billing', getAppUrl()), 303)
     const stripe = getStripe()
     let customerId = org.stripe_customer_id as string | null
     if (!customerId) {
@@ -61,8 +63,10 @@ export async function POST(req: Request) {
       client_reference_id: org.id,
       metadata: { organization_id: org.id, plan },
       subscription_data: {
-        trial_period_days: 14,
-        trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+        ...(org.stripe_subscription_id ? {} : {
+          trial_period_days: 14,
+          trial_settings: { end_behavior: { missing_payment_method: 'cancel' as const } },
+        }),
         metadata: { organization_id: org.id, plan },
       },
     })

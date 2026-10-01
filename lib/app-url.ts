@@ -5,3 +5,10 @@ export function getAppUrl() {
   }
   return url.origin
 }
+
+// Call only after same-origin validation for authenticated billing actions.
+export function getBillingAppUrl(req: Request) {
+  if (process.env.VERCEL_ENV === 'production') return 'https://cashlance.fretixo.fr'
+  if (process.env.VERCEL_ENV === 'preview') return new URL(req.url).origin
+  return getAppUrl()
+}
