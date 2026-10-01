@@ -1,0 +1,12 @@
+import Link from 'next/link'
+import LegalDocument from '@/components/legal-document'
+export const metadata={title:"Conditions générales d'utilisation — CashLance"}
+export default function Page(){return <LegalDocument title="Conditions générales d'utilisation (CGU)">
+<h2>1. Accès</h2><p>CashLance est réservé aux utilisateurs agissant dans un cadre professionnel. Chaque utilisateur doit disposer des autorisations nécessaires pour créer un compte et accéder aux données de son organisation. Le partage d'identifiants et tout accès non autorisé sont interdits.</p>
+<h2>2. Usage des imports et de l'IA</h2><p>Les PDF et images sont analysés à l'aide d'OpenAI pour proposer une extraction structurée. L'utilisateur doit contrôler et corriger les champs, notamment le débiteur, l'e-mail, le montant restant dû, la date d'échéance et les conditions de paiement. Les documents ne doivent pas contenir de données étrangères à la finalité de suivi de factures.</p>
+<h2>3. Validation des relances</h2><p>Le dépôt d'une facture ne déclenche pas d'e-mail. La programmation requiert une confirmation des informations et du scénario. L'utilisateur reste responsable de la réalité et de l'actualité de la créance et doit mettre à jour toute facture soldée, suspendue ou contestée. Les réponses clients ne prouvent pas à elles seules l'encaissement d'une somme.</p>
+<h2>4. Utilisations interdites</h2><p>Sont interdits les faux documents, l'usurpation d'identité, l'envoi de messages frauduleux ou abusifs, le contournement des quotas et limites de sécurité, l'exploitation de données sans base légale ou tout usage contraire aux droits de tiers.</p>
+<h2>5. Sécurité et signalement</h2><p>L'utilisateur protège ses identifiants et signale rapidement tout accès suspect à [CONTACT SÉCURITÉ À COMPLÉTER]. L'éditeur peut limiter temporairement un usage menaçant l'intégrité du service, dans le respect des dispositions applicables.</p>
+<h2>6. Propriété des données</h2><p>Le Client conserve ses droits sur les données importées. Il accorde uniquement les autorisations techniques nécessaires au fonctionnement du service. Les modalités d'export et d'effacement à la fermeture de compte sont précisées dans la <Link href="/confidentialite">politique de confidentialité</Link> et les accords contractuels applicables.</p>
+<h2>7. Documents complémentaires</h2><p>La souscription est régie par les <Link href="/cgv">CGV</Link>. Les traitements de données et les traceurs sont détaillés dans les documents correspondants.</p>
+</LegalDocument>}
