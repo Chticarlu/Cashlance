@@ -68,7 +68,7 @@ export default function InvoiceActions({id,status,remindersActive,hasContact}:{i
         <label>Motif<textarea className="field" name="reason" rows={4} maxLength={500} required /></label>
         <button className="btn alt" disabled={busy}>Enregistrer le litige</button>
       </form>
-    </details>
+    </details>}
 
     {success&&<p className="notice" role="status">{success}</p>}
     {error&&<p className="notice error" role="alert">{error}</p>}
