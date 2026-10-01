@@ -87,7 +87,7 @@ export default function ImportWorkspace() {
     inFlight.current = true; setSaving(true); setError('')
     try {
       await saveChain.current
-      const res = await fetch('/api/imports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ batchId, rows, schedule, scenario: scenarioPayload(scenario, customDays), reviewed }) })
+      const res = await fetch('/api/imports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ batchId, rows, schedule, scenario: schedule ? scenarioPayload(scenario, customDays) : 'gentle', reviewed }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Import non enregistré.')
       setResult(data)
