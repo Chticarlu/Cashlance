@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { dateISO, Draft, draftErrors, emptyDraft, restoreDraft, Field, fields, MAX_FILES, MAX_ROWS, previewSchedule, Scenario, scenarios } from '@/lib/imports/model'
+import { dateISO, Draft, draftErrors, emptyDraft, restoreDraft, Field, fields, MAX_FILES, MAX_ROWS, previewSchedule, Scenario, scenarios, scenarioPayload, validCustomDays } from '@/lib/imports/model'
 import { mappedRows, suggestMapping, Table } from '@/lib/imports/tabular'
 import { track } from '@/lib/funnel'
 
@@ -12,7 +12,7 @@ export default function ImportWorkspace() {
   const [batchId, setBatchId] = useState('')
   const [busy, setBusy] = useState(false), [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState(''), [error, setError] = useState('')
-  const [scenario, setScenario] = useState<Scenario>('gentle'), [schedule, setSchedule] = useState(true), [reviewed, setReviewed] = useState(false)
+  const [scenario, setScenario] = useState<Scenario>('gentle'), [customDays, setCustomDays] = useState<number[]>([1, 7, 15]), [schedule, setSchedule] = useState(true), [reviewed, setReviewed] = useState(false)
   const [result, setResult] = useState<{ created: number; duplicates: number; scheduled: number } | null>(null)
   const [loaded, setLoaded] = useState(false), [saved, setSaved] = useState('')
   const input = useRef<HTMLInputElement>(null), inFlight = useRef(false)
@@ -83,11 +83,11 @@ export default function ImportWorkspace() {
   }
   async function submit() {
     if (inFlight.current) return
-    if (!reviewed || rows.some(r => !r.confirmed || draftErrors(r, schedule).length) || tables.length) { setError('Vérifiez chaque créance et confirmez le scénario.'); return }
+    if (!reviewed || (schedule && scenario === 'custom' && !validCustomDays(customDays)) || rows.some(r => !r.confirmed || draftErrors(r, schedule).length) || tables.length) { setError('Vérifiez chaque créance et confirmez le scénario.'); return }
     inFlight.current = true; setSaving(true); setError('')
     try {
       await saveChain.current
-      const res = await fetch('/api/imports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ batchId, rows, schedule, scenario, reviewed }) })
+      const res = await fetch('/api/imports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ batchId, rows, schedule, scenario: scenarioPayload(scenario, customDays), reviewed }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Import non enregistré.')
       setResult(data)
@@ -147,10 +147,11 @@ export default function ImportWorkspace() {
         <label className="check"><input type="checkbox" checked={schedule} onChange={e => { setSchedule(e.target.checked); setReviewed(false) }} />Programmer les relances après validation</label>
         <p className="muted">Sans email client, décochez cette option : les créances seront conservées sans aucun envoi.</p>
         <label>Scénario<select className="field" value={scenario} onChange={e => { setScenario(e.target.value as Scenario); setReviewed(false) }}>{Object.entries(scenarios).map(([k,s])=><option key={k} value={k}>{s.label}</option>)}</select></label>
-        {schedule && rows.some(r=>dateISO(r.due)) && <details><summary>Voir les dates prévues pour chaque facture</summary>{rows.filter(r=>dateISO(r.due)).map(r=><div key={r.id}><h3>{r.invoiceNumber || r.client}</h3><ul>{previewSchedule(dateISO(r.due),scenario).map(p=><li key={p.stage}>{p.stage} · {new Date(p.at).toLocaleString('fr-FR')}</li>)}</ul></div>)}</details>}
-        <p>Une relance au plus tôt demain ; les relances déjà dépassées sont espacées d’au moins 24 h. Les horaires définitifs sont calculés à la validation. L’envoi nécessite un essai ou abonnement actif.</p>
+        {schedule && scenario === 'custom' && <div className="formGrid" role="group" aria-label="Délais personnalisés"><p className="muted">De 1 à 5 relances : jours après la date d’échéance si elle est future, sinon après la confirmation. Chaque délai doit être croissant, entre 1 et 60 jours.</p>{customDays.map((day,i)=><label key={i}>Relance {i+1} · délai en jours<input className="field" type="number" min="1" max="60" step="1" value={Number.isFinite(day)?day:''} onChange={e=>{const n=Number(e.target.value);setCustomDays(prev=>prev.map((v,j)=>j===i?n:v));setReviewed(false)}} /></label>)}<div className="actions"><button type="button" className="btn alt" disabled={customDays.length>=5} onClick={()=>{setCustomDays(prev=>[...prev,Math.min(60,prev[prev.length-1]+7)]);setReviewed(false)}}>Ajouter une relance</button><button type="button" className="btn alt" disabled={customDays.length<=1} onClick={()=>{setCustomDays(prev=>prev.slice(0,-1));setReviewed(false)}}>Retirer la dernière</button></div>{!validCustomDays(customDays)&&<p className="notice error" role="alert">Les délais doivent être strictement croissants (1 à 60 jours).</p>}</div>}
+        {schedule && rows.some(r=>dateISO(r.due)) && <details><summary>Voir les dates prévues pour chaque facture</summary>{rows.filter(r=>dateISO(r.due)).map(r=><div key={r.id}><h3>{r.invoiceNumber || r.client}</h3><ul>{previewSchedule(dateISO(r.due),scenario,new Date(),customDays).map(p=><li key={p.stage}>{p.stage} · {new Date(p.at).toLocaleString('fr-FR')}</li>)}</ul></div>)}</details>}
+        <p>Si l’échéance est passée, le calendrier démarre à la date de votre confirmation ; sinon il est calculé par rapport à l’échéance. Une première relance au plus tôt 24 h après validation. Aucun email immédiat.</p>
         <label className="check"><input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)} />Je confirme les informations vérifiées et {schedule ? 'autorise la programmation de ce scénario pour ces créances.' : 'souhaite enregistrer sans programmer de relance.'}</label>
-        <div className="actions"><button className="btn" disabled={!reviewed || invalid>0 || rows.some(r=>!r.confirmed) || tables.length>0} onClick={()=>void submit()}>Valider les {rows.length} créance(s)</button><button className="btn alt" onClick={()=>void discard()}>Supprimer le brouillon</button></div>
+        <div className="actions"><button className="btn" disabled={!reviewed || (schedule && scenario==='custom' && !validCustomDays(customDays)) || invalid>0 || rows.some(r=>!r.confirmed) || tables.length>0} onClick={()=>void submit()}>Valider les {rows.length} créance(s)</button><button className="btn alt" onClick={()=>void discard()}>Supprimer le brouillon</button></div>
       </section></fieldset>{saving && <p role="status">Enregistrement sécurisé du lot…</p>}
     </section>}
   </>
