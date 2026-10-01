@@ -29,7 +29,7 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString('fr-FR'
 const statusLabels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
 const reminderLabels:Record<string,string>={pending:'Programmée',sent:'Envoyée',cancelled:'Annulée',failed:'Échec'}
 const replyLabels:Record<string,string>={promise:'Promesse de paiement',paid:'Paiement annoncé',dispute:'Litige',duplicate:'Copie demandée',other:'À examiner'}
-const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.reminders_stopped_at||i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
+const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.reminders_stopped_at||i.reminders_stopped_at||i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
 const followLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(i.reminder_scenario?'Relances actives':statusLabels[i.status]||i.status)
 
 export const metadata={title:'Détail facture — CashLance',robots:{index:false,follow:false}}
