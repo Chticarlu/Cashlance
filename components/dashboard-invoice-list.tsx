@@ -12,6 +12,7 @@ export type DashboardInvoice = {
   import_key:string|null
   reminder_scenario:string|null
   last_contact_at:string|null
+  reminders_stopped_at:string|null
   customers:{name:string;email:string|null}|null
 }
 
@@ -21,7 +22,7 @@ const invoiceState=(i:DashboardInvoice)=>{
   if(i.status==='promised') return 'promised'
   if(i.status==='disputed') return 'disputed'
   if(i.status==='paid') return 'paid'
-  if(i.status==='open'&&!i.reminder_scenario) return i.last_contact_at?'stopped':'todo'
+  if(i.status==='open'&&!i.reminder_scenario) return i.reminders_stopped_at||i.last_contact_at?'stopped':'todo'
   return 'active'
 }
 const invoiceLabel=(i:DashboardInvoice)=>{
