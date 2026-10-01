@@ -1,3 +1,4 @@
+import { subscriptionApiError } from '@/lib/subscription-server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -8,6 +9,8 @@ export async function POST(req:Request) {
  const db=await createClient()
  const {data:{user}}=await db.auth.getUser()
  if(!user) return new NextResponse(null,{status:401})
+  const denied = await subscriptionApiError(db, user.id)
+  if (denied) return denied
  const b=await req.json().catch(()=>null)
  if(!b||!uuid(b.invoiceId)) return NextResponse.json({error:'Facture invalide.'},{status:400})
  const strings=['issuer','client','email','invoiceNumber','dueDate']

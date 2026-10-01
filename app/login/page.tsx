@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { attribution } from '@/lib/funnel'
-import { getAppUrl } from '@/lib/app-url'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,14 +34,14 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setMessage(error.message)
       else {
-        router.push(new URLSearchParams(location.search).get('next') === 'import' ? '/import' : '/dashboard')
+        router.replace(new URLSearchParams(location.search).get('next') === 'import' ? '/auth/continue?next=import' : '/auth/continue')
         router.refresh()
       }
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${getAppUrl()}/auth/callback`, data: { company_name: company.trim(), attribution: attribution(), onboarding_emails: tips } },
+        options: { emailRedirectTo: `${location.origin}/auth/callback`, data: { company_name: company.trim(), attribution: attribution(), onboarding_emails: tips } },
       })
       if (error) setMessage(error.message)
       else if (data.session) {

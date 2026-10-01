@@ -1,3 +1,4 @@
+import { subscriptionApiError } from '@/lib/subscription-server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -8,6 +9,8 @@ export async function POST(req: Request) {
   const db=await createClient()
   const {data:{user}}=await db.auth.getUser()
   if(!user) return new NextResponse(null,{status:401})
+  const denied = await subscriptionApiError(db, user.id)
+  if (denied) return denied
 
   const body=await req.json().catch(()=>null)
   if(!body || !uuid(body.invoiceId) || !['paid','promise','dispute','stop'].includes(body.action)) {

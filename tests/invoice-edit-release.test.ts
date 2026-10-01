@@ -12,7 +12,7 @@ beforeAll(async()=>{
  grant usage on schema public,auth to authenticated,anon,service_role;
  insert into auth.users values('${owner}'),('${other}');`)
  for(const file of readdirSync(migrationDir).filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(new URL(file,migrationDir),'utf8').replace('create extension if not exists pgcrypto;',''))
- org=(await db.query<{id:string}>('insert into organizations(owner_id,name) values($1,$2) returning id',[owner,'Test'])).rows[0].id
+ org=(await db.query<{id:string}>("insert into organizations(owner_id,name,subscription_status,stripe_subscription_id) values($1,$2,'active','sub_test') returning id",[owner,'Test'])).rows[0].id
  customer=(await db.query<{id:string}>('insert into customers(organization_id,name,email) values($1,$2,$3) returning id',[org,'Client','client@example.invalid'])).rows[0].id
  invoice=(await db.query<{id:string}>("insert into invoices(organization_id,customer_id,invoice_number,amount_cents,due_date,import_key,import_details) values($1,$2,'TEST',100,'2026-10-10','TEST','{}') returning id",[org,customer])).rows[0].id
 },30000)

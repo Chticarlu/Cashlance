@@ -6,6 +6,7 @@ import { sendOnboardingEmails } from '@/lib/onboarding-emails'
 import { canSendImportedReminder } from '@/lib/trial'
 
 export async function GET(req: Request) {
+  if (process.env.VERCEL_ENV === 'preview') return NextResponse.json({ error: 'Cron désactivé en Preview' }, { status: 403 })
   const auth = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,6 +25,7 @@ export async function GET(req: Request) {
   for (const reminder of reminders || []) {
     const inv: any = reminder.invoices
     if (!inv || inv.status !== 'open' || !inv.customers?.email) continue
+    if (!canSendImportedReminder(inv.organizations)) continue
     if (inv.import_key && (!inv.reviewed_at || !inv.reminder_scenario || !canSendImportedReminder(inv.organizations))) continue
     const customer = inv.customers
     const copy = reminderCopy(reminder.stage, customer.name, inv.amount_cents, inv.invoice_number)

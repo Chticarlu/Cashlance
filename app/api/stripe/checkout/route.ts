@@ -1,10 +1,12 @@
+import { sameOrigin } from '@/lib/imports/server'
 import { NextResponse } from 'next/server'
-import { getAppUrl } from '@/lib/app-url'
+import { getRequestAppUrl } from '@/lib/app-url'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe, getStripePriceId, PLAN_CONFIG, type PlanKey } from '@/lib/stripe'
 
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return new NextResponse(null, { status: 403 })
   try {
     const form = await req.formData()
     const plan = String(form.get('plan') || '') as PlanKey
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.redirect(new URL('/login', req.url), 303)
+    if (!user) return NextResponse.redirect(new URL('/login', getRequestAppUrl(req)), 303)
 
     const admin = createAdminClient()
     let { data: org, error } = await admin
@@ -32,28 +34,33 @@ export async function POST(req: Request) {
     }
 
     // Changes to an existing subscription belong in the Portal, never a new trial.
-    if (org.stripe_subscription_id && !['canceled', 'incomplete_expired'].includes(org.subscription_status || '')) return NextResponse.redirect(new URL('/account/billing', getAppUrl()), 303)
+    if (org.stripe_subscription_id && !['canceled', 'cancelled', 'incomplete_expired'].includes(org.subscription_status || '')) return NextResponse.redirect(new URL('/account/billing', getRequestAppUrl(req)), 303)
     const stripe = getStripe()
+    if (org.stripe_subscription_id) {
+      // A delayed cancellation webhook must not create a duplicate subscription.
+      const current = await stripe.subscriptions.retrieve(org.stripe_subscription_id)
+      if (!['canceled', 'incomplete_expired'].includes(current.status)) return NextResponse.redirect(new URL('/account/billing', getRequestAppUrl(req)), 303)
+    }
     let customerId = org.stripe_customer_id as string | null
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
         name: org.name,
         metadata: { organization_id: org.id, owner_id: user.id },
-      })
+      }, { idempotencyKey: `customer/${org.id}` })
       customerId = customer.id
       const updated = await admin.from('organizations').update({ stripe_customer_id: customerId }).eq('id', org.id)
       if (updated.error) throw updated.error
     }
 
-    const appUrl = getAppUrl()
+    const appUrl = getRequestAppUrl(req)
     const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX_ENABLED === 'true'
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: getStripePriceId(plan), quantity: 1 }],
-      success_url: `${appUrl}/dashboard?billing=success`,
+      success_url: `${appUrl}/billing/return?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/pricing?billing=cancelled`,
       allow_promotion_codes: true,
       billing_address_collection: automaticTaxEnabled ? 'required' : 'auto',
@@ -69,12 +76,12 @@ export async function POST(req: Request) {
         }),
         metadata: { organization_id: org.id, plan },
       },
-    })
+    }, { idempotencyKey: `checkout/${org.id}/${org.stripe_subscription_id || 'first'}/${plan}/${Math.floor(Date.now()/1800000)}` })
 
     if (!session.url) throw new Error('URL Stripe Checkout absente')
     return NextResponse.redirect(session.url, 303)
   } catch (e) {
-    console.error('Stripe checkout error', e)
+    // Do not log provider responses or credentials.
     return NextResponse.json({ error: 'Impossible de démarrer le paiement' }, { status: 500 })
   }
 }

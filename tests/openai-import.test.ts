@@ -5,7 +5,7 @@ import { analyzeWithOpenAI, validateExtraction } from '../lib/imports/openai'
 import { inspectDocument } from '../lib/imports/analysis-document'
 import { MAX_ANALYSIS_BYTES } from '../lib/imports/analysis-limits'
 const m=vi.hoisted(()=>({user:{id:'11111111-1111-4111-8111-111111111111',email_confirmed_at:'2026-09-30'} as {id:string;email_confirmed_at?:string;is_anonymous?:boolean}|null,rpc:vi.fn(),update:vi.fn(),from:vi.fn()}))
-vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({auth:{getUser:async()=>({data:{user:m.user},error:null})}})}))
+vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({auth:{getUser:async()=>({data:{user:m.user},error:null})},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{subscription_status:'active',stripe_subscription_id:'sub_test'},error:null})})})})})}))
 vi.mock('@/lib/supabase/admin',()=>({createAdminClient:()=>({rpc:m.rpc,from:m.from})}))
 import { POST } from '../app/api/imports/analyze/route'
 const extraction=(extra:Record<string,unknown>={})=>({...Object.fromEntries([...Object.keys(fields),'issuer'].map(k=>[k,null])),isInvoice:true,client:'CLIENT TEST',issuer:'VENDEUR TEST',invoiceNumber:'TEST-001',total:'1280.00',currency:'EUR',...extra})

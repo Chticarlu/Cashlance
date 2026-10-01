@@ -1,3 +1,4 @@
+import { requireSubscription } from '@/lib/subscription-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DemoPanel from '@/components/demo-panel'
@@ -9,6 +10,7 @@ const euro=(cents:number)=>(cents/100).toLocaleString('fr-FR',{style:'currency',
 export const metadata={title:'Mon tableau de bord — CashLance',robots:{index:false,follow:false}}
 export default async function Dashboard() {
   const db=await createClient(); const {data:{user}}=await db.auth.getUser(); if(!user) redirect('/login')
+  await requireSubscription(db, user.id)
   const [result,organization,preferences]=await Promise.all([
     db.from('invoices').select('id,invoice_number,amount_cents,due_date,status,import_key,reminder_scenario,last_contact_at,reminders_stopped_at,import_details,customers(name,email)').order('due_date',{ascending:true}),
     db.from('organizations').select('created_at,subscription_status,stripe_customer_id').eq('owner_id',user.id).maybeSingle(),

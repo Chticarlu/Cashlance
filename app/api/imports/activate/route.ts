@@ -1,3 +1,4 @@
+import { subscriptionApiError } from '@/lib/subscription-server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -7,6 +8,8 @@ export async function POST(req: Request) {
   if (!sameOrigin(req)) return new NextResponse(null, { status: 403 })
   const db = await createClient(); const { data: { user } } = await db.auth.getUser()
   if (!user) return new NextResponse(null, { status: 401 })
+  const denied = await subscriptionApiError(db, user.id)
+  if (denied) return denied
   const body = await req.json().catch(() => null)
   if (!body || !uuid(body.invoiceId) || body.confirmed !== true || !['gentle','complete'].includes(body.scenario) || typeof body.email !== 'string' || body.email.length > 300 || !isValidEmail(body.email)) return NextResponse.json({ error: 'Vérifiez l’adresse email et les informations.' }, { status: 400 })
   const admin = createAdminClient()

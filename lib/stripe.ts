@@ -3,7 +3,8 @@ import Stripe from 'stripe'
 export function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY
   if (!key) throw new Error('STRIPE_SECRET_KEY manquante')
-  return new Stripe(key)
+  if (process.env.VERCEL_ENV === 'preview' && !/^(sk|rk)_test_/.test(key)) throw new Error('La Preview exige une clé Stripe test')
+  return new Stripe(key, { httpClient: Stripe.createFetchHttpClient() })
 }
 
 export const PLAN_CONFIG = {

@@ -1,3 +1,4 @@
+import { requireSubscription } from '@/lib/subscription-server'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -42,6 +43,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   const db=await createClient()
   const {data:{user}}=await db.auth.getUser()
   if(!user) redirect('/login')
+  await requireSubscription(db, user.id)
 
   const invoiceResult=await db.from('invoices')
     .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,import_details,created_at,customers(name,email)')
