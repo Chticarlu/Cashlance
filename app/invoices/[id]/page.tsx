@@ -14,6 +14,7 @@ type Invoice = {
   promise_date:string|null
   dispute_reason:string|null
   last_contact_at:string|null
+  reminders_stopped_at:string|null
   reminder_scenario:string|null
   created_at:string
   customers:Customer
@@ -28,7 +29,7 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString('fr-FR'
 const statusLabels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
 const reminderLabels:Record<string,string>={pending:'Programmée',sent:'Envoyée',cancelled:'Annulée',failed:'Échec'}
 const replyLabels:Record<string,string>={promise:'Promesse de paiement',paid:'Paiement annoncé',dispute:'Litige',duplicate:'Copie demandée',other:'À examiner'}
-const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
+const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.reminders_stopped_at||i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
 const followLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(i.reminder_scenario?'Relances actives':statusLabels[i.status]||i.status)
 
 export const metadata={title:'Détail facture — CashLance',robots:{index:false,follow:false}}
@@ -40,7 +41,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   if(!user) redirect('/login')
 
   const invoiceResult=await db.from('invoices')
-    .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,created_at,customers(name,email)')
+    .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,created_at,customers(name,email)')
     .eq('id',id).maybeSingle()
   if(invoiceResult.error||!invoiceResult.data) notFound()
   const invoice=invoiceResult.data as unknown as Invoice
@@ -65,7 +66,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
       ? 'Traiter le litige'
       : invoice.status==='promised'&&invoice.promise_date
         ? `Attendre le paiement promis le ${date(invoice.promise_date)}`
-        : invoice.status==='open'&&!invoice.reminder_scenario&&invoice.last_contact_at
+        : invoice.status==='open'&&!invoice.reminder_scenario&&(invoice.reminders_stopped_at||invoice.last_contact_at)
           ? 'Relances arrêtées'
           : nextReminder
             ? `Prochaine relance ${nextReminder.stage} le ${dateTime(nextReminder.scheduled_for)}`
@@ -107,7 +108,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         {invoice.paid_at&&<p>Marquée payée le : <strong>{dateTime(invoice.paid_at)}</strong></p>}
       </article>}
 
-      <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} hasContact={Boolean(invoice.last_contact_at)} />
+      <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} hasContact={Boolean(invoice.reminders_stopped_at||invoice.last_contact_at)} />
 
       <div className="detail-columns">
         <section>
