@@ -7,7 +7,10 @@ import {sameOrigin} from '@/lib/imports/server'
 
 export async function POST(req:Request){
  if(!sameOrigin(req)) return new NextResponse(null,{status:403})
- const appUrl=getAppUrl()
+ // Preview must return to the actual deployment, never to a stale NEXT_PUBLIC_APP_URL.
+ const requestOrigin=new URL(req.url).origin
+ const origin=req.headers.get('origin')
+ const appUrl=process.env.VERCEL_ENV==='preview' ? (origin===requestOrigin?origin:requestOrigin) : getAppUrl()
  const back=(error:string)=>NextResponse.redirect(new URL('/account/billing?error='+encodeURIComponent(error),appUrl),303)
  const db=await createClient()
  const {data:{user}}=await db.auth.getUser()
