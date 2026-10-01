@@ -83,7 +83,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
       <div className="toolbar"><div><span className="ecosystem">Facture</span><h1>{invoice.invoice_number||'Sans numéro'}</h1><p className="muted">{invoice.customers?.name||'Client'}</p></div><span className="badge">{invoiceLabel(invoice)}</span></div>
 
       <div className="detail-grid">
-        <article className="card"><small className="muted">Montant restant</small><h2>{euro(invoice.amount_cents)}</h2><p>Échéance : <strong>{date(invoice.due_date)}</strong></p></article>
+        <article className="card"><small className="muted">{invoice.status==='paid'?'Montant réglé':'Montant restant'}</small><h2>{euro(invoice.amount_cents)}</h2><p>Échéance : <strong>{date(invoice.due_date)}</strong></p></article>
         <article className="card"><small className="muted">Client</small><h2>{invoice.customers?.name||'—'}</h2><p>{invoice.customers?.email||'Email non renseigné'}</p></article>
         <article className="card"><small className="muted">Suivi</small><h2>{followLabel(invoice)}</h2><p>Dernier contact : {dateTime(invoice.last_contact_at)}</p></article>
       </div>
