@@ -13,14 +13,14 @@ export default function InvoiceEdit({initial}:{initial:Initial}) {
   e.preventDefault()
   if(busy)return
   const f=new FormData(e.currentTarget)
-  const amount=String(f.get('amount')||'').replace(',','.')
+  const amount=initial.locked?(initial.amountCents/100).toFixed(2):String(f.get('amount')||'').replace(',','.')
   const amountCents=Math.round(Number(amount)*100)
   if(!Number.isSafeInteger(amountCents)||amountCents<1){setError('Montant invalide.');return}
   setBusy(true);setError('');setSuccess('')
   try{
    const res=await fetch('/api/invoices/edit',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({invoiceId:initial.id,issuer:String(f.get('issuer')||''),client:String(f.get('client')||''),
-      email:String(f.get('email')||''),invoiceNumber:String(f.get('invoiceNumber')||''),amountCents,dueDate:String(f.get('dueDate')||'')})})
+    body:JSON.stringify({invoiceId:initial.id,issuer:String(f.get('issuer')||''),client:initial.locked?initial.client:String(f.get('client')||''),
+      email:initial.locked?initial.email:String(f.get('email')||''),invoiceNumber:initial.locked?initial.invoiceNumber:String(f.get('invoiceNumber')||''),amountCents,dueDate:initial.locked?initial.dueDate:String(f.get('dueDate')||'')})})
    const data=await res.json().catch(()=>({}))
    if(!res.ok)throw new Error(data.error||'Modification impossible.')
    setSuccess('Informations enregistrées.')
