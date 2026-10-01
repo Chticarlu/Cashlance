@@ -13,7 +13,7 @@ where n.nspname='public' and p.proname='activate_imported_invoice_server'
 and pg_get_function_identity_arguments(p.oid)='p_owner uuid, target_invoice uuid, confirmed_email text, chosen_scenario text';
 if definition is null then raise exception 'activation_function_not_found'; end if;
 definition:=replace(definition,chr(13),'');
-old_block:=E'  if inv.reminder_scenario is not null then\\n    return 0;\\n  end if;';
+old_block:='  if inv.reminder_scenario is not null then'||chr(10)||'    return 0;'||chr(10)||'  end if;';
 if position(old_block in definition)=0 then
   old_block:='if inv.reminder_scenario is not null then return 0; end if;';
 end if;
