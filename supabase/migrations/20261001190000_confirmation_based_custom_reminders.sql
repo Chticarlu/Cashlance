@@ -94,13 +94,13 @@ then raise exception 'invoice_already_processed'; end if;
   where id = inv.customer_id
     and organization_id = org.id;
 
-  offsets := public.resolve_reminder_offsets(chosen_scenario, inv.due_date, (now() at time zone 'UTC')::date);
+  offsets := public.resolve_reminder_offsets(chosen_scenario, inv.due_date, (now() at time zone 'Europe/Paris')::date);
 
   foreach d in array offsets
   loop
     at_time :=
       greatest(
-        ((greatest(inv.due_date, (now() at time zone 'UTC')::date) + d)::timestamp + time '09:00') at time zone 'UTC',
+        ((greatest(inv.due_date, (now() at time zone 'Europe/Paris')::date) + d)::timestamp + time '09:00') at time zone 'UTC',
         at_time + interval '1 day'
       );
 
@@ -360,7 +360,7 @@ for item in
     created_count := created_count + 1;
 
     if schedule then
-      offsets := public.resolve_reminder_offsets(scenario, due, (now() at time zone 'UTC')::date);
+      offsets := public.resolve_reminder_offsets(scenario, due, (now() at time zone 'Europe/Paris')::date);
       last_at := now();
 
       foreach offset_days in array offsets
@@ -372,7 +372,7 @@ for item in
 
         next_at :=
           greatest(
-            ((greatest(due, (now() at time zone 'UTC')::date) + offset_days)::timestamp + time '09:00') at time zone 'UTC',
+            ((greatest(due, (now() at time zone 'Europe/Paris')::date) + offset_days)::timestamp + time '09:00') at time zone 'UTC',
             last_at + interval '1 day'
           );
 
