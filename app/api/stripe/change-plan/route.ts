@@ -26,7 +26,7 @@ export async function POST(req:Request){
     ||sub.items.data.length!==1||sub.cancel_at_period_end) return back('unavailable')
   const portal=await stripe.billingPortal.configurations.list({is_default:true,limit:1})
   const configuration=portal.data[0]
-  const configuredPrices=new Set(configuration?.features.subscription_update.products.flatMap(p=>p.prices)||[])
+  const configuredPrices=new Set((configuration?.features.subscription_update.products||[]).flatMap(p=>p.prices||[]))
   const allPrices=[getStripePriceId('solo'),getStripePriceId('pro'),getStripePriceId('team')]
   if(!configuration?.features.subscription_update.enabled||!allPrices.every(id=>configuredPrices.has(id)))
    return back('configuration')
