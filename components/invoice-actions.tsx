@@ -2,7 +2,7 @@
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function InvoiceActions({id,status}:{id:string;status:string}) {
+export default function InvoiceActions({id,status,remindersActive}:{id:string;status:string;remindersActive:boolean}) {
   const router=useRouter()
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
@@ -42,8 +42,10 @@ export default function InvoiceActions({id,status}:{id:string;status:string}) {
     <h2>Actions</h2>
     <div className="actions">
       {status!=='paid'&&<button className="btn" disabled={busy} onClick={()=>send('paid')}>Marquer payée</button>}
-      <button className="btn alt" disabled={busy} onClick={()=>send('stop')}>Arrêter les relances</button>
+      {remindersActive&&<button className="btn alt" disabled={busy} onClick={()=>send('stop')}>Arrêter les relances</button>}
     </div>
+
+    {!remindersActive&&status!=='paid'&&<p className="notice">Relances arrêtées — aucun nouvel email automatique ne sera programmé pour cette facture.</p>}
 
     <details>
       <summary>Promesse de paiement</summary>
