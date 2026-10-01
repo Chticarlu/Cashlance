@@ -63,7 +63,7 @@ export function draftErrors(row: Draft, schedule: boolean): string[] {
 }
 export const scenarios = {
   gentle: { label: 'Progressif — J+1, J+7, J+15', stages: ['J+1', 'J+7', 'J+15'] },
-  complete: { label: 'Complet — avant et après échéance (5 relances)', stages: ['J-3', 'J+1', 'J+7', 'J+15', 'J+30'] },
+  complete: { label: 'Complet — 5 relances adaptées à la date de référence', stages: ['J-3', 'J+1', 'J+7', 'J+15', 'J+30'] },
   custom: { label: 'Personnalisé — choisissez vos délais', stages: [] },
 } as const
 export type Scenario = keyof typeof scenarios
