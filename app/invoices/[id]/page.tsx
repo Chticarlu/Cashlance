@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import InvoiceActions from '@/components/invoice-actions'
+import InvoiceEdit from '@/components/invoice-edit'
 
 type Customer = { name:string; email:string|null } | null
 type Invoice = {
@@ -18,6 +19,7 @@ type Invoice = {
   reminder_scenario:string|null
   created_at:string
   customers:Customer
+  import_details:Record<string,unknown>|null
 }
 type Reminder = { id:string; scheduled_for:string; stage:string; state:string }
 type Outbound = { id:string; subject:string; body_text:string; state:string; sent_at:string|null; created_at:string; reminder_id:string|null }
@@ -41,7 +43,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   if(!user) redirect('/login')
 
   const invoiceResult=await db.from('invoices')
-    .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,created_at,customers(name,email)')
+    .select('id,invoice_number,amount_cents,due_date,status,paid_at,promise_date,dispute_reason,last_contact_at,reminder_scenario,reminders_stopped_at,import_details,created_at,customers(name,email)')
     .eq('id',id).maybeSingle()
   if(invoiceResult.error||!invoiceResult.data) notFound()
   const invoice=invoiceResult.data as unknown as Invoice
@@ -107,6 +109,8 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         {invoice.dispute_reason&&<p>Motif du litige : {invoice.dispute_reason}</p>}
         {invoice.paid_at&&<p>Marquée payée le : <strong>{dateTime(invoice.paid_at)}</strong></p>}
       </article>}
+
+      <InvoiceEdit initial={{id:invoice.id,issuer:typeof invoice.import_details?.issuer==='string'?invoice.import_details.issuer:'',client:invoice.customers?.name||'',email:invoice.customers?.email||'',invoiceNumber:invoice.invoice_number||'',amountCents:invoice.amount_cents,dueDate:invoice.due_date,locked:invoice.status!=='open'||Boolean(invoice.reminder_scenario||invoice.reminders_stopped_at||invoice.last_contact_at)||reminders.length>0||outbound.length>0||inbound.length>0}} />
 
       <InvoiceActions id={invoice.id} status={invoice.status} remindersActive={Boolean(invoice.reminder_scenario)} hasContact={Boolean(invoice.reminders_stopped_at||invoice.last_contact_at)} />
 
