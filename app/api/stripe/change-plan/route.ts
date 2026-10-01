@@ -26,7 +26,8 @@ export async function POST(req:Request){
   const sub=await stripe.subscriptions.retrieve(org.stripe_subscription_id)
   const customerId=typeof sub.customer==='string'?sub.customer:sub.customer.id
   if(customerId!==org.stripe_customer_id||!['active','trialing'].includes(sub.status)
-    ||sub.items.data.length!==1||sub.cancel_at_period_end) return back('unavailable')
+    ||sub.items.data.length!==1) return back('unavailable')
+  if(sub.cancel_at_period_end||sub.cancel_at) return back('scheduled_cancellation')
   const portal=await stripe.billingPortal.configurations.list({is_default:true,limit:1})
   const configuration=portal.data[0]
   if(!configuration?.features.subscription_update.enabled)
