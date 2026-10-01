@@ -34,6 +34,13 @@ begin
 
   org_id:=inv.organization_id;
 
+  if inv.status='paid' then
+    if action='paid' then
+      return jsonb_build_object('ok',true,'action','paid','cancelled_reminders',0,'already_paid',true);
+    end if;
+    raise exception 'invoice_already_paid';
+  end if;
+
   if action='paid' then
     update public.invoices
     set status='paid',
