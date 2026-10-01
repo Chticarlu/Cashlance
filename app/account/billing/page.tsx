@@ -8,7 +8,7 @@ export default async function BillingPage(){
  const db=await createClient()
  const {data:{user}}=await db.auth.getUser()
  if(!user) redirect('/login')
- const {data:org}=await db.from('organizations').select('subscription_status,subscription_plan,stripe_customer_id').eq('owner_id',user.id).maybeSingle()
+ const {data:org}=await db.from('organizations').select('subscription_status,plan,stripe_customer_id').eq('owner_id',user.id).maybeSingle()
  const status=org?.subscription_status||'inactive'
  const statusLabel:Record<string,string>={active:'Actif',trialing:'Essai en cours',past_due:'Paiement à régulariser',canceled:'Résilié',cancelled:'Résilié',inactive:'Aucun abonnement'}
  return <main className="wrap">
@@ -17,7 +17,7 @@ export default async function BillingPage(){
    <span className="ecosystem">Espace client</span><h1>Mon abonnement</h1>
    <p className="muted">Consultez votre formule et gérez la facturation en toute sécurité.</p>
    <div className="card">
-    <p>Formule : <strong>{names[String(org?.subscription_plan||'')]||String(org?.subscription_plan||'Non renseignée')}</strong></p>
+    <p>Formule : <strong>{names[String(org?.plan||'')]||String(org?.plan||'Non renseignée')}</strong></p>
     <p>Statut : <strong>{statusLabel[status]||status}</strong></p>
     {org?.stripe_customer_id?<form action="/api/stripe/portal" method="post"><button className="btn" type="submit">Gérer mon abonnement</button></form>
      :<><p className="muted">Aucun espace de facturation Stripe n’est encore associé à ce compte.</p><Link href="/pricing" className="btn alt">Découvrir les offres</Link></>}
