@@ -28,6 +28,8 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString('fr-FR'
 const statusLabels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
 const reminderLabels:Record<string,string>={pending:'Programmée',sent:'Envoyée',cancelled:'Annulée',failed:'Échec'}
 const replyLabels:Record<string,string>={promise:'Promesse de paiement',paid:'Paiement annoncé',dispute:'Litige',duplicate:'Copie demandée',other:'À examiner'}
+const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
+const followLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.last_contact_at?'Relances arrêtées':'À programmer'):(i.reminder_scenario?'Relances actives':statusLabels[i.status]||i.status)
 
 export const metadata={title:'Détail facture — CashLance',robots:{index:false,follow:false}}
 
@@ -60,12 +62,12 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
   return <main className="wrap">
     <nav className="nav"><Link className="brand" href="/">Cash<b>lance</b></Link><Link href="/dashboard">← Tableau de bord</Link></nav>
     <section className="section">
-      <div className="toolbar"><div><span className="ecosystem">Facture</span><h1>{invoice.invoice_number||'Sans numéro'}</h1><p className="muted">{invoice.customers?.name||'Client'}</p></div><span className="badge">{statusLabels[invoice.status]||invoice.status}</span></div>
+      <div className="toolbar"><div><span className="ecosystem">Facture</span><h1>{invoice.invoice_number||'Sans numéro'}</h1><p className="muted">{invoice.customers?.name||'Client'}</p></div><span className="badge">{invoiceLabel(invoice)}</span></div>
 
       <div className="detail-grid">
         <article className="card"><small className="muted">Montant restant</small><h2>{euro(invoice.amount_cents)}</h2><p>Échéance : <strong>{date(invoice.due_date)}</strong></p></article>
         <article className="card"><small className="muted">Client</small><h2>{invoice.customers?.name||'—'}</h2><p>{invoice.customers?.email||'Email non renseigné'}</p></article>
-        <article className="card"><small className="muted">Suivi</small><h2>{invoice.reminder_scenario?'Relances actives':'Sans scénario'}</h2><p>Dernier contact : {dateTime(invoice.last_contact_at)}</p></article>
+        <article className="card"><small className="muted">Suivi</small><h2>{followLabel(invoice)}</h2><p>Dernier contact : {dateTime(invoice.last_contact_at)}</p></article>
       </div>
 
       {(invoice.promise_date||invoice.dispute_reason||invoice.paid_at)&&<article className="card detail-note">
