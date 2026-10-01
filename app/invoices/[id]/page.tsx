@@ -75,6 +75,8 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
         {invoice.paid_at&&<p>Marquée payée le : <strong>{dateTime(invoice.paid_at)}</strong></p>}
       </article>}
 
+      <InvoiceActions id={invoice.id} status={invoice.status} />
+
       <div className="detail-columns">
         <section>
           <h2>Planning des relances</h2>
