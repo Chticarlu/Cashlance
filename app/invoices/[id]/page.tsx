@@ -33,7 +33,7 @@ const euro=(cents:number)=>(cents/100).toLocaleString('fr-FR',{style:'currency',
 const date=(value:string|null)=>value?new Date(value.includes('T')?value:value+'T12:00:00').toLocaleDateString('fr-FR'):'—'
 const dateTime=(value:string|null)=>value?new Date(value).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'—'
 const statusLabels:Record<string,string>={open:'En relance',promised:'Promesse de paiement',disputed:'Litige',paid:'Payée'}
-const reminderLabels:Record<string,string>={pending:'Programmée',sent:'Envoyée',cancelled:'Annulée',failed:'Échec'}
+const reminderLabels:Record<string,string>={pending:'Programmée',sent:'Envoyée',cancelled:'Annulée',failed:'Échec',needs_review:'À vérifier'}
 const replyLabels:Record<string,string>={promise:'Promesse de paiement',paid:'Paiement annoncé',dispute:'Litige',duplicate:'Copie demandée',other:'À examiner'}
 const deliveryLabels:Record<string,string>={queued:'En attente de prise en charge',sent:'Envoyé · distribution non confirmée',delivered:'Distribué au serveur destinataire',failed:'Échec de livraison',bounced:'Adresse rejetée / rebond'}
 const invoiceLabel=(i:Invoice)=>i.status==='open'&&!i.reminder_scenario?(i.reminders_stopped_at||i.reminders_stopped_at||i.last_contact_at?'Relances arrêtées':'À programmer'):(statusLabels[i.status]||i.status)
@@ -81,7 +81,7 @@ export default async function InvoicePage({params}:{params:Promise<{id:string}>}
             : 'Programmer les relances'
 
   const timeline=[
-    ...outbound.map(m=>({id:'out-'+m.id,kind:'out' as const,at:m.sent_at||m.created_at,title:m.subject,body:m.body_text,meta:deliveryLabels[m.state]||m.state,detail:m.delivery_error || (m.delivered_at ? `Distribution confirmée le ${dateTime(m.delivered_at)} (lecture non garantie).` : null),reply:m.replied_at ? `Réponse du destinataire enregistrée le ${dateTime(m.replied_at)}.` : null})),
+    ...outbound.map(m=>({id:'out-'+m.id,kind:'out' as const,at:m.sent_at||m.created_at,title:m.subject,body:m.body_text,meta:deliveryLabels[m.state]||m.state,detail:m.delivery_failed_at ? `${m.delivery_error || 'Échec de livraison'} — ${dateTime(m.delivery_failed_at)}. Les relances suivantes sont suspendues pour vérification.` : (m.delivered_at ? `Distribution confirmée le ${dateTime(m.delivered_at)} (lecture non garantie).` : null),reply:m.replied_at ? `Réponse du destinataire enregistrée le ${dateTime(m.replied_at)}.` : null})),
     ...inbound.map(m=>({id:'in-'+m.id,kind:'in' as const,at:m.created_at,title:m.subject||'Réponse reçue',body:m.body_text||'',meta:replyLabels[m.classification]||m.classification,review:m.needs_review})),
   ].sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime())
 
