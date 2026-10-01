@@ -78,7 +78,7 @@ export function scenarioPayload(scenario: Scenario, customDays: number[]): strin
   return 'custom:' + customDays.join(',')
 }
 export function previewSchedule(due: string, scenario: Scenario, now = new Date(), customDays: number[] = [1, 7, 15]) {
-  const today = now.toISOString().slice(0, 10)
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
   const overdue = due < today
   const base = overdue ? today : due
   const offsets = scenario === 'custom' ? (validCustomDays(customDays) ? customDays : []) :
