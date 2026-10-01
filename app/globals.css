@@ -69,3 +69,6 @@ html[data-theme="light"] .demoBanner{background:#e3f4e9;color:#23563c}
 @media(max-width:600px){.nav-controls{gap:8px}.theme-toggle{font-size:13px;padding:8px}.invoice-list-compact .dashboard-invoice-card>.actions{display:grid;grid-template-columns:1fr}.quick-paid,.quick-paid>.btn{width:100%}}
 
 .billing-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:18px 0}.billing-actions form{margin:0}@media(max-width:600px){.billing-actions{display:grid;grid-template-columns:1fr}.billing-actions .btn{width:100%}}
+
+/* Legal footer and contract reading */
+.site-legal-footer{max-width:1120px;margin:50px auto 0;padding:24px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}.site-legal-footer nav{display:flex;gap:12px 20px;flex-wrap:wrap}.site-legal-footer nav a{text-decoration:underline;text-underline-offset:3px}.site-legal-footer a:focus-visible,.legal-content a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.legal-content{max-width:80ch}.legal-content h1{line-height:1.1;overflow-wrap:anywhere}.legal-content h2{font-size:22px;margin-top:34px}.legal-content p{line-height:1.75;overflow-wrap:anywhere}.legal-content a{text-decoration:underline;text-underline-offset:3px}.login .check a{text-decoration:underline;text-underline-offset:2px}
