@@ -148,7 +148,7 @@ export default function DashboardInvoiceList({invoices}:{invoices:DashboardInvoi
           <Link className="btn alt" href={`/invoices/${i.id}`}>Voir la facture</Link>
           {i.status!=='paid'&&<QuickPaid id={i.id}/>}
         </div>
-        {state==='todo'&&i.import_key&&<ActivateInvoice id={i.id} email={i.customers?.email||''} />}
+        {state==='todo'&&i.import_key&&<ActivateInvoice id={i.id} email={i.customers?.email||''} due={i.due_date} />}
       </article>})}
       {!visible.length&&<div className="card"><p className="muted">Aucune facture ne correspond à ce filtre.</p></div>}
     </div>
