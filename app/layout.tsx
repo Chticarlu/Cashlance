@@ -7,4 +7,4 @@ export const metadata = {
   alternates: { canonical: '/' },
 }
 
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr"><body>{children}</body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:"try{document.documentElement.dataset.theme=localStorage.getItem('cashlance-theme')==='light'?'light':'dark'}catch(e){}"}} /></head><body>{children}</body></html>}
