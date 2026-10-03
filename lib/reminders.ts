@@ -1,24 +1,49 @@
-export function reminderCopy(stage: string, customer: string, amountCents: number, invoiceNumber?: string | null) {
+export type ReminderSender = { name: string; dueDate?: string | null; contactEmail?: string | null }
+
+export function reminderCopy(stage: string, customer: string, amountCents: number, invoiceNumber?: string | null, sender?: ReminderSender) {
   const amount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amountCents / 100)
-  const ref = invoiceNumber ? ` ${invoiceNumber}` : ''
-  const subjectByStage: Record<string,string> = {
-    'J-3': `Rappel avant échéance — facture${ref}`,
-    'J+1': `Échéance dépassée — facture${ref}`,
-    'J+7': `Relance — facture${ref} en attente`,
-    'J+15': `Deuxième relance — facture${ref}`,
-    'J+30': `Relance importante — facture${ref}`,
+  const ref = invoiceNumber || 'non renseignée'
+  const supplier = sender?.name?.trim() || 'Votre fournisseur'
+  const due = sender?.dueDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(sender.dueDate)
+    ? sender.dueDate.split('-').reverse().join('/') : 'Non renseignée'
+  const contact = sender?.contactEmail?.trim()
+  const subjectByStage: Record<string, string> = {
+    'J-3': 'Rappel avant échéance', 'J+1': 'Rappel de paiement',
+    'J+7': 'Relance de paiement', 'J+15': 'Deuxième relance de paiement',
+    'J+30': 'Relance importante',
   }
-  const intro: Record<string,string> = {
-    'J-3': `Sauf erreur de notre part, la facture${ref} d’un montant de ${amount} arrive prochainement à échéance.`,
-    'J+1': `Sauf erreur de notre part, la facture${ref} d’un montant de ${amount} est arrivée à échéance et reste en attente de règlement.`,
-    'J+7': `Nous revenons vers vous concernant la facture${ref} d’un montant de ${amount}, toujours indiquée comme non réglée.`,
-    'J+15': `Malgré notre précédent message, la facture${ref} d’un montant de ${amount} apparaît toujours en attente de règlement.`,
-    'J+30': `Nous vous recontactons au sujet de la facture${ref} d’un montant de ${amount}, dont l’échéance est dépassée depuis plusieurs semaines.`,
+  const intro: Record<string, string> = {
+    'J-3': 'Nous vous rappelons que la facture ci-dessous arrive prochainement à échéance.',
+    'J+1': "Sauf erreur de notre part, nous n'avons pas encore enregistré le règlement de la facture ci-dessous, dont la date d'échéance est dépassée.",
+    'J+7': 'Nous revenons vers vous concernant la facture ci-dessous, toujours indiquée comme non réglée.',
+    'J+15': 'Malgré notre précédent message, cette facture apparaît toujours en attente de règlement.',
+    'J+30': "Nous vous recontactons au sujet de cette facture, dont l'échéance est dépassée depuis plusieurs semaines.",
   }
-  return {
-    subject: subjectByStage[stage] || `Rappel de règlement — facture${ref}`,
-    text: `Bonjour ${customer},\n\n${intro[stage] || `Nous vous contactons concernant la facture${ref} d’un montant de ${amount}, actuellement indiquée comme non réglée.`}\n\nSi le règlement a déjà été effectué, vous pouvez ignorer ce message. Dans le cas contraire, merci de nous indiquer la date de règlement prévue ou toute difficulté concernant cette facture.\n\nCordialement,`,
-  }
+  const subject = `${subjectByStage[stage] || 'Rappel de règlement'} – Facture ${ref} – ${supplier}`
+  const text = `${supplier} — Service facturation
+
+Bonjour ${customer},
+
+${intro[stage] || intro['J+1']}
+
+RÉCAPITULATIF DE VOTRE FACTURE
+Fournisseur : ${supplier}
+Facture : ${ref}
+Montant restant dû : ${amount}
+Date d'échéance : ${due}
+
+Si votre règlement a déjà été effectué, nous vous remercions et vous invitons à ne pas tenir compte de ce rappel.
+Dans le cas contraire, merci de procéder au règlement selon les modalités figurant sur votre facture.
+
+UNE QUESTION OU UNE DIFFICULTÉ DE PAIEMENT ?
+Répondez directement à cet e-mail pour contacter ${supplier}. Vous pouvez également nous indiquer une date prévisionnelle de règlement.
+
+Nous restons à votre disposition.
+Cordialement,
+Service facturation – ${supplier}${contact ? '\\n' + contact : ''}
+
+Relance transmise automatiquement via CashLance pour le compte de ${supplier}.`
+  return { subject, text }
 }
 
 export type ReplyClassification = 'promise' | 'paid' | 'dispute' | 'duplicate' | 'other'
