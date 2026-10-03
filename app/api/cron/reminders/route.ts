@@ -28,10 +28,17 @@ export async function GET(req: Request) {
     if (!canSendImportedReminder(inv.organizations)) continue
     if (inv.import_key && (!inv.reviewed_at || !inv.reminder_scenario || !canSendImportedReminder(inv.organizations))) continue
     const customer = inv.customers
-    const copy = reminderCopy(reminder.stage, customer.name, inv.amount_cents, inv.invoice_number)
     const replyTo = process.env.CASHLANCE_INBOUND_DOMAIN
       ? `invoice+${inv.id}@${process.env.CASHLANCE_INBOUND_DOMAIN}`
       : undefined
+    // Read the actual supplier identity rather than using CashLance as the creditor.
+    const { data: supplier } = await db.from('organizations')
+      .select('name').eq('id', inv.organization_id).single()
+    const copy = reminderCopy(reminder.stage, customer.name, inv.amount_cents, inv.invoice_number, {
+      name: supplier?.name || inv.organizations?.name || 'Votre fournisseur',
+      dueDate: inv.due_date,
+      contactEmail: replyTo,
+    })
 
     const { data, error: sendError } = await resend.emails.send({
       from: process.env.CASHLANCE_FROM_EMAIL,
